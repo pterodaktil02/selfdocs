@@ -66,6 +66,7 @@ class SelfDocsLauncher:
                 port=self.port,
                 workers=1,
                 log_level="info",
+                log_config=None,
                 access_log=False,
             )
         )
