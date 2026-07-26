@@ -8,10 +8,20 @@ import sys
 from pathlib import Path
 
 
-bundle_dir = Path(getattr(sys, "_MEIPASS", Path(sys.executable).parent))
+_DLL_DIRECTORY_HANDLES: list[object] = []
+
+bundle_dir = Path(
+    getattr(sys, "_MEIPASS", Path(sys.executable).resolve().parent)
+)
 dll_dir = bundle_dir / "weasyprint-dlls"
 
-os.environ["WEASYPRINT_DLL_DIRECTORIES"] = str(dll_dir)
+if dll_dir.is_dir():
+    dll_path = str(dll_dir)
 
-if hasattr(os, "add_dll_directory") and dll_dir.is_dir():
-    os.add_dll_directory(str(dll_dir))
+    os.environ["WEASYPRINT_DLL_DIRECTORIES"] = dll_path
+    os.environ["PATH"] = dll_path + os.pathsep + os.environ.get("PATH", "")
+
+    if hasattr(os, "add_dll_directory"):
+        _DLL_DIRECTORY_HANDLES.append(
+            os.add_dll_directory(dll_path)
+        )
