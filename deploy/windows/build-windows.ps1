@@ -18,7 +18,14 @@ if (-not (Test-Path $PythonExe)) {
 }
 
 & $PythonExe -m pip install --upgrade pip wheel
+if ($LASTEXITCODE -ne 0) {
+    throw "Failed to upgrade pip and wheel"
+}
+
 & $PythonExe -m pip install -r requirements-windows.txt
+if ($LASTEXITCODE -ne 0) {
+    throw "Failed to install Python dependencies"
+}
 
 Remove-Item $BuildDir -Recurse -Force -ErrorAction SilentlyContinue
 Remove-Item $DistDir -Recurse -Force -ErrorAction SilentlyContinue
@@ -27,6 +34,10 @@ Remove-Item $DistDir -Recurse -Force -ErrorAction SilentlyContinue
     --noconfirm `
     --clean `
     deploy/windows/selfdocs.spec
+
+if ($LASTEXITCODE -ne 0) {
+    throw "PyInstaller build failed"
+}
 
 if (-not (Test-Path (Join-Path $OutputDir "SelfDocs.exe"))) {
     throw "SelfDocs.exe was not created"
