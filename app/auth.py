@@ -40,11 +40,42 @@ class AuthRuntime:
 
 def _write_private(path: Path, value: str) -> None:
     path.parent.mkdir(parents=True, exist_ok=True)
-    temporary = path.with_name(path.name + ".tmp")
-    temporary.write_text(value + "\n", encoding="utf-8")
-    temporary.chmod(0o600)
-    temporary.replace(path)
-    path.chmod(0o600)
+
+    temporary = path.with_name(
+        f".{path.name}.{os.getpid()}.{secrets.token_hex(4)}.tmp"
+    )
+
+    try:
+        with temporary.open("w", encoding="utf-8", newline="\n") as file:
+            file.write(value + "\n")
+            file.flush()
+            os.fsync(file.fileno())
+
+        try:
+            temporary.chmod(0o600)
+        except OSError:
+            pass
+
+        last_error: PermissionError | None = None
+
+        for attempt in range(10):
+            try:
+                os.replace(temporary, path)
+                last_error = None
+                break
+            except PermissionError as error:
+                last_error = error
+                time.sleep(0.05 * (attempt + 1))
+
+        if last_error is not None:
+            raise last_error
+
+        try:
+            path.chmod(0o600)
+        except OSError:
+            pass
+    finally:
+        temporary.unlink(missing_ok=True)
 
 
 def _read_or_create_secret(path: Path) -> str:
