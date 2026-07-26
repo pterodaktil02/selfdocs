@@ -1,0 +1,285 @@
+{% extends "base.html" %}
+
+{% block title %}Настройки — SelfDocs{% endblock %}
+
+{% block content %}
+<div class="page-header">
+    <div>
+        <h1>Настройки исполнителя</h1>
+        <p>
+            Постоянные реквизиты самозанятого, банковские данные
+            и факсимильная подпись.
+        </p>
+    </div>
+</div>
+
+<form method="post"
+      action="/settings"
+      enctype="multipart/form-data"
+      class="settings-form">
+    <input type="hidden" name="_csrf" value="{{ csrf_token(request) }}">
+
+    <section class="card">
+        <h2>Основные реквизиты</h2>
+
+        <div class="form-grid">
+            <label class="field span-2">
+                <span>Полное ФИО</span>
+                <input type="text"
+                       name="full_name"
+                       value="{{ settings.full_name }}"
+                       required>
+            </label>
+
+            <label class="field">
+                <span>Сокращенное ФИО</span>
+                <input type="text"
+                       name="short_name"
+                       value="{{ settings.short_name }}"
+                       placeholder="Иванов И.И."
+                       required>
+            </label>
+
+            <label class="field">
+                <span>Статус</span>
+                <input type="text"
+                       name="tax_status"
+                       value="{{ settings.tax_status }}"
+                       required>
+            </label>
+
+            <label class="field">
+                <span>ИНН</span>
+                <input type="text"
+                       name="inn"
+                       value="{{ settings.inn }}"
+                       maxlength="12"
+                       required>
+            </label>
+
+            <label class="field">
+                <span>Телефон</span>
+                <input type="text"
+                       name="phone"
+                       value="{{ settings.phone }}">
+            </label>
+
+            <label class="field span-2">
+                <span>Электронная почта</span>
+                <input type="email"
+                       name="email"
+                       value="{{ settings.email }}">
+            </label>
+        </div>
+    </section>
+
+    <section class="card">
+        <h2>Паспортные данные</h2>
+
+        <div class="form-grid">
+            <label class="field">
+                <span>Серия</span>
+                <input type="text"
+                       name="passport_series"
+                       value="{{ settings.passport_series }}">
+            </label>
+
+            <label class="field">
+                <span>Номер</span>
+                <input type="text"
+                       name="passport_number"
+                       value="{{ settings.passport_number }}">
+            </label>
+
+            <label class="field">
+                <span>Дата выдачи</span>
+                <input type="date"
+                       name="passport_issued_at"
+                       value="{{ settings.passport_issued_at or '' }}">
+            </label>
+
+            <label class="field span-2">
+                <span>Кем выдан</span>
+                <textarea name="passport_issued_by"
+                          rows="3">{{ settings.passport_issued_by }}</textarea>
+            </label>
+
+            <label class="field span-2">
+                <span>Адрес регистрации</span>
+                <textarea name="registration_address"
+                          rows="3">{{ settings.registration_address }}</textarea>
+            </label>
+        </div>
+    </section>
+
+    <section class="card">
+        <h2>Банковские реквизиты</h2>
+
+        <div class="form-grid">
+            <label class="field span-2">
+                <span>Банк получателя</span>
+                <input type="text"
+                       name="bank_name"
+                       value="{{ settings.bank_name }}">
+            </label>
+
+            <label class="field span-2">
+                <span>Расчетный счет</span>
+                <input type="text"
+                       name="bank_account"
+                       value="{{ settings.bank_account }}"
+                       maxlength="20">
+            </label>
+
+            <label class="field">
+                <span>БИК</span>
+                <input type="text"
+                       name="bank_bik"
+                       value="{{ settings.bank_bik }}"
+                       maxlength="9">
+            </label>
+
+            <label class="field">
+                <span>Корреспондентский счет</span>
+                <input type="text"
+                       name="bank_corr_account"
+                       value="{{ settings.bank_corr_account }}"
+                       maxlength="20">
+            </label>
+        </div>
+    </section>
+
+    <section class="card">
+        <h2>Факсимильная подпись</h2>
+
+        <div class="signature-layout">
+            <div>
+                <label class="field">
+                    <span>Файл подписи</span>
+                    <input type="file"
+                           name="signature"
+                           accept="image/png">
+                </label>
+
+                <div class="requirements">
+                    <strong>Требования:</strong>
+                    <ul>
+                        <li>формат PNG;</li>
+                        <li>высота не менее 600 пикселей;</li>
+                        <li>желательно изображение на белом или прозрачном фоне;</li>
+                        <li>размер файла не более 5 МБ;</li>
+                        <li>после загрузки изображение нормализуется до 608 px и 600 DPI.</li>
+                    </ul>
+                </div>
+
+                {% if settings.signature_filename %}
+                    <label class="checkbox">
+                        <input type="checkbox"
+                               name="delete_signature"
+                               value="1">
+                        Удалить текущее факсимиле
+                    </label>
+                {% endif %}
+            </div>
+
+            <div class="signature-preview">
+                {% if settings.signature_filename %}
+                    <img src="/private/signature"
+                         alt="Факсимильная подпись">
+                {% else %}
+                    <div class="empty-preview">
+                        Подпись еще не загружена
+                    </div>
+                {% endif %}
+            </div>
+        </div>
+    </section>
+
+    <section class="card">
+        <h2>Документы</h2>
+
+        <div class="form-grid">
+
+            <label class="field">
+                <span>Срок оплаты, рабочих дней</span>
+                <input type="number"
+                       name="default_payment_days"
+                       min="1"
+                       max="365"
+                       value="{{ settings.default_payment_days }}"
+                       required>
+            </label>
+
+            <label class="field">
+                <span>Единица измерения по умолчанию</span>
+                <input type="text"
+                       name="default_unit"
+                       value="{{ settings.default_unit }}"
+                       required>
+            </label>
+
+            <label class="field">
+                <span>Формулировка НДС</span>
+                <input type="text"
+                       name="vat_text"
+                       value="{{ settings.vat_text }}"
+                       required>
+            </label>
+
+            <label class="field span-2">
+                <span>Условия приемки по умолчанию</span>
+                <textarea name="acceptance_text"
+                          rows="6">{{ settings.acceptance_text }}</textarea>
+            </label>
+        </div>
+    </section>
+
+    <div class="form-actions">
+        <button type="submit" class="button primary">
+            Сохранить настройки
+        </button>
+    </div>
+</form>
+
+<section class="card security-card">
+    <h2>Безопасность</h2>
+    <p class="section-help">
+        Здесь можно изменить имя пользователя и пароль. Для подтверждения
+        обязательно укажи текущий пароль. Пустое поле нового пароля оставит
+        прежний пароль без изменений.
+    </p>
+
+    {% if security_success %}<div class="alert success">{{ security_success }}</div>{% endif %}
+    {% if security_error %}<div class="alert error">{{ security_error }}</div>{% endif %}
+
+    <form method="post" action="/settings/security" class="security-form">
+        <input type="hidden" name="_csrf" value="{{ csrf_token(request) }}">
+        <div class="form-grid">
+            <label class="field">
+                <span>Имя пользователя</span>
+                <input type="text" name="new_username" value="{{ auth_username }}"
+                       autocomplete="username" required>
+            </label>
+            <label class="field">
+                <span>Текущий пароль</span>
+                <input type="password" name="current_password"
+                       autocomplete="current-password" required>
+            </label>
+            <label class="field">
+                <span>Новый пароль</span>
+                <input type="password" name="new_password" minlength="6"
+                       autocomplete="new-password"
+                       placeholder="Оставь пустым, чтобы не менять">
+            </label>
+            <label class="field">
+                <span>Повтори новый пароль</span>
+                <input type="password" name="new_password_confirmation" minlength="6"
+                       autocomplete="new-password">
+            </label>
+        </div>
+        <div class="form-actions">
+            <button type="submit" class="button primary">Изменить учетные данные</button>
+        </div>
+    </form>
+</section>
+{% endblock %}

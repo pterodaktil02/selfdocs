@@ -1,0 +1,139 @@
+{% extends "base.html" %}
+
+{% block title %}История - SelfDocs{% endblock %}
+
+{% block content %}
+<div class="page-header">
+    <div>
+        <h1>История</h1>
+        <p>
+            Сохраненные комплекты документов и их исходные данные.
+        </p>
+    </div>
+
+    <a class="button primary" href="/orders/new">
+        Оформить документы
+    </a>
+</div>
+
+<form method="get" action="/orders" class="search-panel">
+    <input
+        type="search"
+        name="q"
+        value="{{ query }}"
+        placeholder="Номер, заказчик или ИНН"
+        autocomplete="off"
+    >
+
+    <button type="submit" class="button secondary">
+        Найти
+    </button>
+
+    {% if query %}
+        <a class="button secondary" href="/orders">
+            Сбросить
+        </a>
+    {% endif %}
+</form>
+
+<div class="card table-card">
+    {% if rows %}
+        <div class="table-wrapper">
+            <table class="data-table history-table">
+                <thead>
+                    <tr>
+                        <th>Документ</th>
+                        <th>Заказчик</th>
+                        <th>Период работ</th>
+                        <th>Сумма</th>
+                        <th></th>
+                    </tr>
+                </thead>
+
+                <tbody>
+                    {% for row in rows %}
+                        <tr>
+                            <td>
+                                <strong>
+                                    № {{ row.order.document_number }}
+                                </strong>
+
+                                <div class="secondary-text">
+                                    от
+                                    {{ row.order.document_date.strftime("%d.%m.%Y") }}
+                                </div>
+                            </td>
+
+                            <td>
+                                <strong>
+                                    {{
+                                        row.client.short_name
+                                        or row.client.full_name
+                                        or "Без наименования"
+                                    }}
+                                </strong>
+
+                                <div class="secondary-text">
+                                    ИНН {{ row.client.inn or "—" }}
+                                </div>
+                            </td>
+
+                            <td class="nowrap">
+                                {% if row.order.work_start_date == row.order.work_end_date %}
+                                    {{
+                                        row.order.work_start_date.strftime(
+                                            "%d.%m.%Y"
+                                        )
+                                    }}
+                                {% else %}
+                                    {{
+                                        row.order.work_start_date.strftime(
+                                            "%d.%m.%Y"
+                                        )
+                                    }}
+                                    -
+                                    {{
+                                        row.order.work_end_date.strftime(
+                                            "%d.%m.%Y"
+                                        )
+                                    }}
+                                {% endif %}
+                            </td>
+
+                            <td class="nowrap">
+                                <strong>{{ row.total_text }} руб.</strong>
+                            </td>
+
+                            <td>
+                                <div class="row-actions">
+                                    <a
+                                        class="button small primary"
+                                        href="/orders/{{ row.order.id }}"
+                                    >
+                                        Документы
+                                    </a>
+
+                                    <a
+                                        class="button small secondary"
+                                        href="/orders/{{ row.order.id }}/edit"
+                                    >
+                                        Изменить
+                                    </a>
+                                </div>
+                            </td>
+                        </tr>
+                    {% endfor %}
+                </tbody>
+            </table>
+        </div>
+    {% else %}
+        <div class="empty-state">
+            <strong>Документы не найдены</strong>
+
+            <p>
+                Измени условия поиска или оформи первый комплект.
+            </p>
+        </div>
+    {% endif %}
+</div>
+{% endblock %}

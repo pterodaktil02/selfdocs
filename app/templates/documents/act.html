@@ -1,0 +1,127 @@
+<!doctype html>
+<html lang="ru">
+<head>
+    <meta charset="utf-8">
+    <style>
+        {% include "documents/document.css" %}
+    </style>
+</head>
+<body>
+<h1 class="document-title">
+        Акт сдачи-приемки услуг № {{ order.document_number }}
+    </h1>
+
+    <div class="document-subtitle">
+        от {{ order.document_date.strftime("%d.%m.%Y") }}
+    </div>
+
+    <p>
+        <strong>
+            {{ contractor.full_name or contractor.short_name }}
+        </strong>,
+        именуемый в дальнейшем Исполнитель, с одной стороны, и
+        <strong>{{ client.full_name or client.short_name }}</strong>,
+        именуемый в дальнейшем Заказчик, с другой стороны,
+        составили настоящий Акт о нижеследующем.
+    </p>
+
+    <p>
+        Исполнитель оказал, а Заказчик принял следующие услуги:
+    </p>
+
+    <table class="items-table">
+        <thead>
+            <tr>
+                <th class="number">№</th>
+                <th>Наименование услуги</th>
+                <th class="quantity">Кол-во</th>
+                <th class="unit">Ед.</th>
+                <th class="price">Цена</th>
+                <th class="sum">Сумма</th>
+            </tr>
+        </thead>
+
+        <tbody>
+            {% for item in items %}
+                <tr>
+                    <td class="number">{{ loop.index }}</td>
+                    <td>{{ item.description }}</td>
+                    <td class="quantity">{{ item.quantity_text }}</td>
+                    <td class="unit">{{ item.unit }}</td>
+                    <td class="price">{{ item.price_text }}</td>
+                    <td class="sum">{{ item.sum_text }}</td>
+                </tr>
+            {% endfor %}
+        </tbody>
+    </table>
+
+    <div class="total-block">
+        Общая стоимость оказанных услуг:
+        <strong>{{ total_text }} руб.</strong>
+    </div>
+
+    <p class="amount-words">
+        {{ total_words }}.
+    </p>
+
+    <p>
+        Услуги оказаны в период с
+        {{ order.work_start_date.strftime("%d.%m.%Y") }}
+        по
+        {{ order.work_end_date.strftime("%d.%m.%Y") }}.
+    </p>
+
+    <p>
+        Заказчик не имеет претензий к объему, качеству и срокам
+        оказания услуг.
+    </p>
+
+    <table class="signatures-table">
+        <tr>
+            <td>
+                <div class="party-title">Исполнитель</div>
+
+                <div>
+                    {{ contractor.short_name or contractor.full_name }}
+                </div>
+
+                <div class="signature-space">
+                    {% if signature_uri %}
+                        <img
+                            class="signature-image"
+                            src="{{ signature_uri }}"
+                            alt=""
+                        >
+                    {% endif %}
+
+                    <div class="signature-line"></div>
+
+                    <div class="signature-caption">
+                        <span>подпись</span>
+                        <span>
+                            {{ contractor.short_name or contractor.full_name }}
+                        </span>
+                    </div>
+                </div>
+            </td>
+
+            <td>
+                <div class="party-title">Заказчик</div>
+
+                <div>
+                    {{ client.short_name or client.full_name }}
+                </div>
+
+                <div class="signature-space">
+                    <div class="signature-line"></div>
+
+                    <div class="signature-caption">
+                        <span>подпись</span>
+                        <span>расшифровка подписи</span>
+                    </div>
+                </div>
+            </td>
+        </tr>
+    </table>
+</body>
+</html>

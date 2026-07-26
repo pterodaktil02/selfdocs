@@ -1,0 +1,118 @@
+{% extends "base.html" %}
+
+{% block title %}Заказчики - SelfDocs{% endblock %}
+
+{% block content %}
+<div class="page-header">
+    <div>
+        <h1>Заказчики</h1>
+        <p>
+            Справочник заказчиков, ранее использованных при оформлении документов.
+        </p>
+    </div>
+</div>
+
+<form method="get" action="/clients" class="search-panel">
+    <input
+        type="search"
+        name="q"
+        value="{{ query }}"
+        placeholder="Название или ИНН"
+        autocomplete="off"
+    >
+
+    <button type="submit" class="button secondary">
+        Найти
+    </button>
+
+    {% if query %}
+        <a class="button secondary" href="/clients">
+            Сбросить
+        </a>
+    {% endif %}
+</form>
+
+<div class="card table-card">
+    {% if clients %}
+        <div class="table-wrapper">
+            <table class="data-table">
+                <thead>
+                    <tr>
+                        <th>Заказчик</th>
+                        <th>ИНН / КПП</th>
+                        <th>Банк</th>
+                        <th>Контакты</th>
+                        <th></th>
+                    </tr>
+                </thead>
+
+                <tbody>
+                    {% for client in clients %}
+                        <tr>
+                            <td>
+                                <strong>
+                                    {{ client.short_name or client.full_name }}
+                                </strong>
+
+                                {% if client.short_name and client.short_name != client.full_name %}
+                                    <div class="secondary-text">
+                                        {{ client.full_name }}
+                                    </div>
+                                {% endif %}
+                            </td>
+
+                            <td>
+                                <div>ИНН: {{ client.inn or "—" }}</div>
+                                <div>КПП: {{ client.kpp or "—" }}</div>
+                            </td>
+
+                            <td>
+                                <div>{{ client.bank_name or "—" }}</div>
+
+                                {% if client.bank_bik %}
+                                    <div class="secondary-text">
+                                        БИК {{ client.bank_bik }}
+                                    </div>
+                                {% endif %}
+                            </td>
+
+                            <td>
+                                <div>{{ client.contact_name or "—" }}</div>
+
+                                {% if client.phone %}
+                                    <div class="secondary-text">
+                                        {{ client.phone }}
+                                    </div>
+                                {% endif %}
+
+                                {% if client.email %}
+                                    <div class="secondary-text">
+                                        {{ client.email }}
+                                    </div>
+                                {% endif %}
+                            </td>
+
+                            <td>
+                                <a
+                                    class="button small secondary"
+                                    href="/clients/{{ client.id }}/edit"
+                                >
+                                    Изменить
+                                </a>
+                            </td>
+                        </tr>
+                    {% endfor %}
+                </tbody>
+            </table>
+        </div>
+    {% else %}
+        <div class="empty-state">
+            <strong>Заказчиков пока нет</strong>
+
+            <p>
+                Они появятся после оформления первого заказа.
+            </p>
+        </div>
+    {% endif %}
+</div>
+{% endblock %}

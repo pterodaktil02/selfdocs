@@ -1,0 +1,245 @@
+@page {
+    size: A4;
+    margin: 12mm 14mm 14mm;
+
+    @bottom-center {
+        content: string(current-document-title) " · страница " counter(page) " из " counter(pages);
+        font-size: 8pt;
+        font-weight: normal;
+        color: #666;
+    }
+}
+
+* {
+    box-sizing: border-box;
+}
+
+html,
+body {
+    margin: 0;
+    padding: 0;
+}
+
+body {
+    color: #000;
+    font-family: "DejaVu Sans", sans-serif;
+    font-size: 9.5pt;
+    line-height: 1.35;
+}
+
+h1,
+h2,
+h3,
+p {
+    margin-top: 0;
+}
+
+.document-title {
+    string-set: current-document-title content();
+    margin: 0 0 7mm;
+    text-align: center;
+    font-size: 14pt;
+    font-weight: 700;
+}
+
+.document-subtitle {
+    margin: -4mm 0 7mm;
+    text-align: center;
+    font-size: 10pt;
+}
+
+.details-table,
+.items-table,
+.bank-table,
+.signatures-table {
+    width: 100%;
+    border-collapse: collapse;
+}
+
+.details-table {
+    margin-bottom: 5mm;
+}
+
+.details-table td {
+    padding: 1.2mm 1.5mm;
+    vertical-align: top;
+}
+
+.details-label {
+    width: 37mm;
+    font-weight: 700;
+}
+
+.bank-table {
+    margin-bottom: 6mm;
+    border: 1px solid #000;
+}
+
+.bank-table td {
+    padding: 1.5mm 2mm;
+    vertical-align: top;
+    border: 1px solid #000;
+}
+
+.bank-label {
+    width: 42mm;
+    font-size: 8.5pt;
+}
+
+.items-table {
+    margin: 5mm 0 4mm;
+}
+
+.items-table th,
+.items-table td {
+    padding: 1.5mm 1.4mm;
+    vertical-align: top;
+    border: 1px solid #000;
+}
+
+.items-table th {
+    text-align: center;
+    font-size: 8.5pt;
+    font-weight: 700;
+}
+
+.items-table .number {
+    width: 10mm;
+    text-align: center;
+}
+
+.items-table .quantity {
+    width: 20mm;
+    text-align: right;
+}
+
+.items-table .unit {
+    width: 19mm;
+    text-align: center;
+}
+
+.items-table .price,
+.items-table .sum {
+    width: 28mm;
+    text-align: right;
+    white-space: nowrap;
+}
+
+.total-block {
+    margin-top: 3mm;
+    text-align: right;
+}
+
+.total-block strong {
+    font-size: 11pt;
+}
+
+.amount-words {
+    margin: 4mm 0;
+    font-weight: 700;
+}
+
+.conditions {
+    margin-top: 6mm;
+}
+
+.conditions p {
+    margin-bottom: 3mm;
+    text-align: justify;
+}
+
+.signatures-table {
+    margin-top: 12mm;
+    page-break-inside: avoid;
+}
+
+.signatures-table td {
+    width: 50%;
+    padding-right: 7mm;
+    vertical-align: top;
+}
+
+.signatures-table td + td {
+    padding-right: 0;
+    padding-left: 7mm;
+}
+
+.party-title {
+    margin-bottom: 3mm;
+    font-weight: 700;
+}
+
+.signature-space {
+    position: relative;
+    height: 25mm;
+    margin-top: 6mm;
+}
+
+.signature-line {
+    position: absolute;
+    right: 0;
+    bottom: 5mm;
+    left: 0;
+    border-bottom: 1px solid #000;
+}
+
+.signature-image {
+    position: absolute;
+    z-index: 1;
+    left: 18mm;
+    bottom: 1mm;
+    width: auto;
+    height: 18mm;
+    object-fit: contain;
+}
+
+.signature-caption {
+    position: absolute;
+    right: 0;
+    bottom: 0;
+    left: 0;
+    display: flex;
+    justify-content: space-between;
+    font-size: 7.5pt;
+}
+
+.signature-name {
+    font-size: 8.5pt;
+}
+
+.small {
+    font-size: 8pt;
+}
+
+.right {
+    text-align: right;
+}
+
+.center {
+    text-align: center;
+}
+
+.nowrap {
+    white-space: nowrap;
+}
+
+.page-break-avoid {
+    page-break-inside: avoid;
+}
+
+/* Строку позиции не разрывать между страницами */
+.items-table tbody tr {
+    break-inside: avoid;
+    page-break-inside: avoid;
+}
+
+/* Заголовок повторять на каждой странице */
+.items-table thead {
+    display: table-header-group;
+}
+
+/* Тело таблицы можно переносить построчно */
+.items-table tbody {
+    break-inside: auto;
+    page-break-inside: auto;
+}

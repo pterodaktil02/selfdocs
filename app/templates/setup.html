@@ -1,0 +1,33 @@
+<!doctype html>
+<html lang="ru">
+<head>
+    <meta charset="utf-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1">
+    <title>Первичная настройка - SelfDocs</title>
+    <link rel="stylesheet" href="/static/css/app.css">
+</head>
+<body class="login-page">
+    <main class="login-card">
+        <h1>Первичная настройка</h1>
+        <p>Создай учетную запись администратора SelfDocs.</p>
+        {% if error %}<div class="alert error">{{ error }}</div>{% endif %}
+        <form method="post" action="/setup" class="login-form">
+            <input type="hidden" name="_csrf" value="{{ csrf_token(request) }}">
+            <label class="field">
+                <span>Имя пользователя</span>
+                <input name="username" value="{{ username or 'admin' }}" autocomplete="username" required autofocus>
+            </label>
+            <label class="field">
+                <span>Пароль</span>
+                <input type="password" name="password" autocomplete="new-password" minlength="6" required>
+            </label>
+            <label class="field">
+                <span>Повтори пароль</span>
+                <input type="password" name="password_confirmation" autocomplete="new-password" minlength="6" required>
+            </label>
+            <p class="form-help">Не менее 6 символов. Пароль хранится только в виде Argon2-хеша.</p>
+            <button class="button primary" type="submit">Создать администратора</button>
+        </form>
+    </main>
+</body>
+</html>

@@ -1,0 +1,40 @@
+<header class="topbar">
+    <div class="container topbar-inner">
+        <a class="brand" href="/orders/new">SelfDocs</a>
+
+        <nav class="main-nav" aria-label="Основная навигация">
+            <a
+                href="/orders/new"
+                class="{% if active_page == 'new_order' %}active{% endif %}"
+            >
+                Оформление
+            </a>
+
+            <a
+                href="/orders"
+                class="{% if active_page == 'orders' %}active{% endif %}"
+            >
+                История
+            </a>
+
+            <a
+                href="/clients"
+                class="{% if active_page == 'clients' %}active{% endif %}"
+            >
+                Заказчики
+            </a>
+
+            <a
+                href="/settings"
+                class="{% if active_page == 'settings' %}active{% endif %}"
+            >
+                Настройки
+            </a>
+        </nav>
+
+        <form method="post" action="/logout" class="logout-form">
+    <input type="hidden" name="_csrf" value="{{ csrf_token(request) }}">
+            <button type="submit" class="button secondary small">Выйти</button>
+        </form>
+    </div>
+</header>

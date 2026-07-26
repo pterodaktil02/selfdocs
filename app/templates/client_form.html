@@ -1,0 +1,193 @@
+{% extends "base.html" %}
+
+{% block title %}Редактирование заказчика - SelfDocs{% endblock %}
+
+{% block content %}
+<div class="page-header">
+    <div>
+        <h1>Редактирование заказчика</h1>
+        <p>
+            Изменения повлияют на новые документы. Уже оформленные документы
+            должны использовать сохраненный снимок реквизитов.
+        </p>
+    </div>
+</div>
+
+<form method="post" action="/clients/{{ client.id }}/edit">
+    <input type="hidden" name="_csrf" value="{{ csrf_token(request) }}">
+    <section class="card">
+        <h2>Основные реквизиты</h2>
+
+        <div class="form-grid">
+            <label class="field span-2">
+                <span>Полное наименование</span>
+                <textarea
+                    name="full_name"
+                    rows="3"
+                    required
+                >{{ client.full_name }}</textarea>
+            </label>
+
+            <label class="field span-2">
+                <span>Краткое наименование</span>
+                <input
+                    type="text"
+                    name="short_name"
+                    value="{{ client.short_name }}"
+                >
+            </label>
+
+            <label class="field">
+                <span>ИНН</span>
+                <input
+                    type="text"
+                    name="inn"
+                    value="{{ client.inn }}"
+                    inputmode="numeric"
+                    maxlength="12"
+                    required
+                >
+            </label>
+
+            <label class="field">
+                <span>КПП</span>
+                <input
+                    type="text"
+                    name="kpp"
+                    value="{{ client.kpp }}"
+                    inputmode="numeric"
+                    maxlength="9"
+                >
+            </label>
+
+            <label class="field span-2">
+                <span>Юридический адрес</span>
+                <textarea
+                    name="legal_address"
+                    rows="4"
+                >{{ client.legal_address }}</textarea>
+            </label>
+        </div>
+    </section>
+
+    <section class="card">
+        <h2>Банковские реквизиты</h2>
+
+        <div class="form-grid">
+            <label class="field span-2">
+                <span>Наименование банка</span>
+                <input
+                    type="text"
+                    name="bank_name"
+                    value="{{ client.bank_name }}"
+                >
+            </label>
+
+            <label class="field span-2">
+                <span>Расчетный счет</span>
+                <input
+                    type="text"
+                    name="bank_account"
+                    value="{{ client.bank_account }}"
+                    inputmode="numeric"
+                    maxlength="20"
+                >
+            </label>
+
+            <label class="field">
+                <span>БИК</span>
+                <input
+                    type="text"
+                    name="bank_bik"
+                    value="{{ client.bank_bik }}"
+                    inputmode="numeric"
+                    maxlength="9"
+                >
+            </label>
+
+            <label class="field">
+                <span>Корреспондентский счет</span>
+                <input
+                    type="text"
+                    name="bank_corr_account"
+                    value="{{ client.bank_corr_account }}"
+                    inputmode="numeric"
+                    maxlength="20"
+                >
+            </label>
+        </div>
+    </section>
+
+    <section class="card">
+        <h2>Контакты</h2>
+
+        <div class="form-grid">
+            <label class="field span-2">
+                <span>Контактное лицо</span>
+                <input
+                    type="text"
+                    name="contact_name"
+                    value="{{ client.contact_name }}"
+                >
+            </label>
+
+            <label class="field">
+                <span>Телефон</span>
+                <input
+                    type="text"
+                    name="phone"
+                    value="{{ client.phone }}"
+                >
+            </label>
+
+            <label class="field">
+                <span>Электронная почта</span>
+                <input
+                    type="email"
+                    name="email"
+                    value="{{ client.email }}"
+                >
+            </label>
+
+            <label class="field span-2">
+                <span>Комментарий</span>
+                <textarea
+                    name="comment"
+                    rows="4"
+                >{{ client.comment }}</textarea>
+            </label>
+        </div>
+    </section>
+
+    <div class="form-actions split-actions">
+        <button type="submit" class="button primary">
+            Сохранить
+        </button>
+
+        <a class="button secondary" href="/clients">
+            Отмена
+        </a>
+    </div>
+</form>
+
+{% if delete_blocked %}
+<div class="alert error">
+    У заказчика есть {{ order_count }} заказ(а/ов). Для удаления нужно явно подтвердить удаление заказчика вместе со всеми его заказами.
+</div>
+{% endif %}
+
+<section class="card danger-zone">
+    <h2>Удаление заказчика</h2>
+    {% if order_count %}
+        <p>У заказчика связано заказов: <strong>{{ order_count }}</strong>. Удаление необратимо и удалит также все эти заказы.</p>
+    {% else %}
+        <p>У заказчика нет связанных заказов.</p>
+    {% endif %}
+    <form method="post" action="/clients/{{ client.id }}/delete" onsubmit="return confirm('Удалить заказчика{% if order_count %} вместе со всеми заказами{% endif %}? Это действие необратимо.');">
+        <input type="hidden" name="_csrf" value="{{ csrf_token(request) }}">
+        {% if order_count and delete_blocked %}<input type="hidden" name="delete_orders" value="1">{% endif %}
+        <button type="submit" class="button danger">{% if order_count and not delete_blocked %}Проверить возможность удаления{% elif order_count %}Подтвердить удаление заказчика и заказов{% else %}Удалить заказчика{% endif %}</button>
+    </form>
+</section>
+
+{% endblock %}

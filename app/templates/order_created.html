@@ -1,0 +1,168 @@
+{% extends "base.html" %}
+
+{% block title %}Заказ № {{ order.document_number }} - SelfDocs{% endblock %}
+
+{% block content %}
+<div class="page-header">
+    <div>
+        <h1>
+            Заказ № {{ order.document_number }}
+            от {{ order.document_date.strftime("%d.%m.%Y") }}
+        </h1>
+
+        <p>
+            {{ client.short_name or client.full_name }}
+            · {{ "%.2f"|format(total) }} руб.
+        </p>
+
+        <p class="secondary-text">
+            Период оказания услуг:
+            {{ order.work_start_date.strftime("%d.%m.%Y") }}
+            -
+            {{ order.work_end_date.strftime("%d.%m.%Y") }}
+        </p>
+    </div>
+</div>
+
+<section class="card">
+    <h2>Документы</h2>
+
+    <div class="table-wrapper">
+        <table class="data-table documents-table">
+            <thead>
+                <tr>
+                    <th>Документ</th>
+                    <th>С факсимиле</th>
+                    <th>Без факсимиле</th>
+                </tr>
+            </thead>
+
+            <tbody>
+                <tr>
+                    <td><strong>Счет</strong></td>
+
+                    <td>
+                        <a
+                            class="button small primary"
+                            href="/orders/{{ order.id }}/pdf/document/invoice?signature=1"
+                        >
+                            Скачать PDF
+                        </a>
+                    </td>
+
+                    <td>
+                        <a
+                            class="button small secondary"
+                            href="/orders/{{ order.id }}/pdf/document/invoice?signature=0"
+                        >
+                            Скачать PDF
+                        </a>
+                    </td>
+                </tr>
+
+                <tr>
+                    <td><strong>Акт</strong></td>
+
+                    <td>
+                        <a
+                            class="button small primary"
+                            href="/orders/{{ order.id }}/pdf/document/act?signature=1"
+                        >
+                            Скачать PDF
+                        </a>
+                    </td>
+
+                    <td>
+                        <a
+                            class="button small secondary"
+                            href="/orders/{{ order.id }}/pdf/document/act?signature=0"
+                        >
+                            Скачать PDF
+                        </a>
+                    </td>
+                </tr>
+
+                <tr>
+                    <td><strong>Приложение</strong></td>
+
+                    <td>
+                        <a
+                            class="button small primary"
+                            href="/orders/{{ order.id }}/pdf/document/appendix?signature=1"
+                        >
+                            Скачать PDF
+                        </a>
+                    </td>
+
+                    <td>
+                        <a
+                            class="button small secondary"
+                            href="/orders/{{ order.id }}/pdf/document/appendix?signature=0"
+                        >
+                            Скачать PDF
+                        </a>
+                    </td>
+                </tr>
+            </tbody>
+        </table>
+    </div>
+
+    <div class="bundle-actions">
+        <a
+            class="button primary"
+            href="/orders/{{ order.id }}/pdf/bundle?signature=1"
+        >
+            Скачать комплект с факсимиле
+        </a>
+
+        <a
+            class="button secondary"
+            href="/orders/{{ order.id }}/pdf/bundle?signature=0"
+        >
+            Скачать комплект без факсимиле
+        </a>
+    </div>
+</section>
+
+<div class="form-actions split-actions">
+    <a
+        class="button primary"
+        href="/orders/{{ order.id }}/edit"
+    >
+        Изменить заказ
+    </a>
+
+    <a class="button secondary" href="/orders/new">
+        Оформить следующий
+    </a>
+
+    <a class="button secondary" href="/orders">
+        Перейти в историю
+    </a>
+</div>
+
+
+<div class="danger-zone">
+    <div>
+        <h2>Удаление заказа</h2>
+        <p>
+            Будут удалены заказ, счет, приложение и акт.
+            Заказчик останется в справочнике.
+        </p>
+    </div>
+
+    <form
+        method="post"
+        action="/orders/{{ order.id }}/delete"
+        onsubmit="return window.confirm(
+            'Удалить заказ № {{ order.document_number }}? Отменить это действие будет нельзя.'
+        );"
+    >
+    <input type="hidden" name="_csrf" value="{{ csrf_token(request) }}">
+        <button type="submit" class="button danger">
+            Удалить заказ
+        </button>
+    </form>
+</div>
+
+{% endblock %}

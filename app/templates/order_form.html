@@ -1,0 +1,395 @@
+{% extends "base.html" %}
+
+{% block title %}{{ page_title or "Оформление" }} - SelfDocs{% endblock %}
+
+{% block content %}
+<div class="page-header">
+    <div>
+        <h1>{{ page_title or "Оформление документов" }}</h1>
+        <p>
+            {% if page_description %}
+                {{ page_description }}
+            {% else %}
+                Счет, акт и приложение получат единый номер
+                после сохранения.
+            {% endif %}
+        </p>
+    </div>
+</div>
+
+<form
+    method="post"
+    action="{{ form_action or '/orders/new' }}"
+    id="order-form"
+    novalidate
+>
+    <input type="hidden" name="_csrf" value="{{ csrf_token(request) }}">
+    <input
+        type="hidden"
+        name="date_changed"
+        id="date-changed"
+        value=""
+    >
+    <section class="card">
+        <h2>Документ</h2>
+
+        <div class="form-grid">
+            <label class="field">
+                <span>Дата документа</span>
+                <input
+                    type="date"
+                    name="document_date"
+                    value="{{ form.document_date }}"
+                    required
+                >
+            </label>
+
+            <label class="field">
+                <span>Срок оплаты, дней</span>
+                <input
+                    type="number"
+                    name="payment_days"
+                    value="{{ form.payment_days }}"
+                    min="0"
+                    max="365"
+                    required
+                >
+            </label>
+
+            <label class="field">
+                <span>Начало работ</span>
+                <input
+                    type="date"
+                    name="work_start_date"
+                    value="{{ form.work_start_date }}"
+                    required
+                >
+            </label>
+
+            <label class="field">
+                <span>Окончание работ</span>
+                <input
+                    type="date"
+                    name="work_end_date"
+                    value="{{ form.work_end_date }}"
+                    required
+                >
+            </label>
+        </div>
+    </section>
+
+    <section class="card">
+        <h2>Заказчик</h2>
+
+        <input
+            type="hidden"
+            name="selected_client_id"
+            id="selected-client-id"
+            value="{{ form.selected_client_id }}"
+        >
+
+        <script type="application/json" id="selected-client-card-data">{{ selected_client_card|default({})|tojson }}</script>
+
+        <div class="form-grid">
+            <label class="field span-2 autocomplete-field">
+                <span>Полное наименование</span>
+
+                <input
+                    type="text"
+                    name="client_full_name"
+                    id="client-full-name"
+                    value="{{ form.client.full_name }}"
+                    autocomplete="off"
+                    required
+                >
+
+                <div
+                    class="client-suggestion-list"
+                    id="name-suggestions"
+                ></div>
+            </label>
+
+            <label class="field span-2">
+                <span>Краткое наименование</span>
+                <input
+                    type="text"
+                    name="client_short_name"
+                    id="client-short-name"
+                    value="{{ form.client.short_name }}"
+                >
+            </label>
+
+            <label class="field autocomplete-field">
+                <span>ИНН</span>
+
+                <input
+                    type="text"
+                    name="client_inn"
+                    id="client-inn"
+                    value="{{ form.client.inn }}"
+                    inputmode="numeric"
+                    maxlength="12"
+                    autocomplete="off"
+                    required
+                >
+
+                <div
+                    class="client-suggestion-list"
+                    id="inn-suggestions"
+                ></div>
+            </label>
+
+            <label class="field">
+                <span>КПП</span>
+                <input
+                    type="text"
+                    name="client_kpp"
+                    id="client-kpp"
+                    value="{{ form.client.kpp }}"
+                    inputmode="numeric"
+                    maxlength="9"
+                >
+            </label>
+
+            <label class="field span-2">
+                <span>Юридический адрес</span>
+                <textarea
+                    name="client_legal_address"
+                    id="client-legal-address"
+                    rows="3"
+                >{{ form.client.legal_address }}</textarea>
+            </label>
+        </div>
+
+        <h3>Банковские реквизиты</h3>
+
+        <div class="form-grid">
+            <label class="field span-2">
+                <span>Наименование банка</span>
+                <input
+                    type="text"
+                    name="client_bank_name"
+                    id="client-bank-name"
+                    value="{{ form.client.bank_name }}"
+                >
+            </label>
+
+            <label class="field span-2">
+                <span>Расчетный счет</span>
+                <input
+                    type="text"
+                    name="client_bank_account"
+                    id="client-bank-account"
+                    value="{{ form.client.bank_account }}"
+                    inputmode="numeric"
+                    maxlength="20"
+                >
+            </label>
+
+            <label class="field">
+                <span>БИК</span>
+                <input
+                    type="text"
+                    name="client_bank_bik"
+                    id="client-bank-bik"
+                    value="{{ form.client.bank_bik }}"
+                    inputmode="numeric"
+                    maxlength="9"
+                >
+            </label>
+
+            <label class="field">
+                <span>Корреспондентский счет</span>
+                <input
+                    type="text"
+                    name="client_bank_corr_account"
+                    id="client-bank-corr-account"
+                    value="{{ form.client.bank_corr_account }}"
+                    inputmode="numeric"
+                    maxlength="20"
+                >
+            </label>
+        </div>
+
+        <h3>Контакты</h3>
+
+        <div class="form-grid">
+            <label class="field span-2">
+                <span>Контактное лицо</span>
+                <input
+                    type="text"
+                    name="client_contact_name"
+                    id="client-contact-name"
+                    value="{{ form.client.contact_name }}"
+                >
+            </label>
+
+            <label class="field">
+                <span>Телефон</span>
+                <input
+                    type="text"
+                    name="client_phone"
+                    id="client-phone"
+                    value="{{ form.client.phone }}"
+                >
+            </label>
+
+            <label class="field">
+                <span>Электронная почта</span>
+                <input
+                    type="email"
+                    name="client_email"
+                    id="client-email"
+                    value="{{ form.client.email }}"
+                >
+            </label>
+
+            <label class="field span-2">
+                <span>Комментарий</span>
+                <textarea
+                    name="client_comment"
+                    id="client-comment"
+                    rows="2"
+                >{{ form.client.comment }}</textarea>
+            </label>
+        </div>
+        <div
+            class="client-update-choice"
+            id="client-update-choice"
+            hidden
+        >
+            <strong>Реквизиты отличаются от карточки заказчика.</strong>
+            <label>
+                <input
+                    type="radio"
+                    name="client_update_mode"
+                    value="update"
+                    {% if form.client_update_mode == "update" %}checked{% endif %}
+                >
+                обновить карточку заказчика
+            </label>
+            <label>
+                <input
+                    type="radio"
+                    name="client_update_mode"
+                    value="one_time"
+                    {% if form.client_update_mode == "one_time" %}checked{% endif %}
+                >
+                использовать только в этом заказе
+            </label>
+            <p class="client-update-help">
+                Разовый вариант подходит для временной смены счета, адреса или контакта.
+                Для другого юридического лица создай отдельного заказчика.
+            </p>
+        </div>
+    </section>
+
+    <section class="card">
+        <div class="section-header">
+            <div>
+                <h2>Услуги</h2>
+                <p>Количество умножается на цену за единицу.</p>
+            </div>
+        </div>
+
+        <div class="table-wrapper">
+            <table class="data-table items-table">
+                <thead>
+                    <tr>
+                        <th>Наименование</th>
+                        <th>Количество</th>
+                        <th>Единица</th>
+                        <th>Цена</th>
+                        <th>Сумма</th>
+                        <th></th>
+                    </tr>
+                </thead>
+
+                <tbody id="items-body">
+                    {% for item in form["items"] %}
+                        <tr class="item-row">
+                            <td>
+                                <textarea
+                                    name="item_description"
+                                    rows="2"
+                                >{{ item.description }}</textarea>
+                            </td>
+
+                            <td>
+                                <input
+                                    type="text"
+                                    name="item_quantity"
+                                    class="item-quantity"
+                                    value="{{ item.quantity }}"
+                                    inputmode="decimal"
+                                >
+                            </td>
+
+                            <td>
+                                <input
+                                    type="text"
+                                    name="item_unit"
+                                    value="{{ item.unit }}"
+                                >
+                            </td>
+
+                            <td>
+                                <input
+                                    type="text"
+                                    name="item_price"
+                                    class="item-price"
+                                    value="{{ item.price }}"
+                                    inputmode="decimal"
+                                >
+                            </td>
+
+                            <td class="item-sum">0,00</td>
+
+                            <td>
+                                <button
+                                    type="button"
+                                    class="button small danger-outline remove-item"
+                                    title="Удалить позицию"
+                                    aria-label="Удалить позицию"
+                                >
+                                    ×
+                                </button>
+                            </td>
+                        </tr>
+                    {% endfor %}
+                </tbody>
+
+                <tfoot>
+                    <tr>
+                        <td colspan="4" class="total-label">
+                            Итого
+                        </td>
+                        <td id="order-total">0,00</td>
+                        <td></td>
+                    </tr>
+                </tfoot>
+            </table>
+        </div>
+    </section>
+
+    <section class="card">
+        <h2>Примечание</h2>
+
+        <label class="field">
+            <span>Внутренний комментарий к заказу</span>
+            <textarea
+                name="note"
+                rows="3"
+            >{{ form.note }}</textarea>
+        </label>
+    </section>
+
+    <div class="form-actions">
+        <button type="submit" class="button primary">
+            Сохранить заказ
+        </button>
+    </div>
+</form>
+
+<script src="/static/js/order-form.js"></script>
+{% endblock %}

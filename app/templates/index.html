@@ -1,0 +1,32 @@
+{% extends "base.html" %}
+
+{% block content %}
+<div class="page-header">
+    <div>
+        <h1>SelfDocs</h1>
+        <p>Генератор документов самозанятого.</p>
+    </div>
+</div>
+
+<div class="dashboard">
+    <a class="dashboard-card" href="/settings">
+        <strong>Настройки</strong>
+        <span>Реквизиты исполнителя и факсимиле</span>
+    </a>
+
+    <a class="dashboard-card disabled" href="/clients">
+        <strong>Заказчики</strong>
+        <span>Справочник юридических лиц</span>
+    </a>
+
+    <a class="dashboard-card disabled" href="/orders/new">
+        <strong>Оформление</strong>
+        <span>Счет, акт и приложение</span>
+    </a>
+
+    <a class="dashboard-card disabled" href="/orders">
+        <strong>История</strong>
+        <span>Ранее оформленные комплекты</span>
+    </a>
+</div>
+{% endblock %}
