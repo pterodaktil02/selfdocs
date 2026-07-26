@@ -32,7 +32,9 @@ analysis = Analysis(
     hiddenimports=hiddenimports,
     hookspath=[],
     hooksconfig={},
-    runtime_hooks=[],
+    runtime_hooks=[
+        str(project_root / "deploy" / "windows" / "runtime-weasyprint.py"),
+    ],
     excludes=[],
     noarchive=False,
 )
