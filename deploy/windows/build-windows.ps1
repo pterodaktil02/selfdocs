@@ -14,7 +14,11 @@ $OutputDir = Join-Path $DistDir "SelfDocs"
 Set-Location $ProjectRoot
 
 if (-not (Test-Path $PythonExe)) {
-    py -3 -m venv $VenvDir
+    python -m venv $VenvDir
+
+    if ($LASTEXITCODE -ne 0) {
+        throw "Failed to create Windows virtual environment"
+    }
 }
 
 & $PythonExe -m pip install --upgrade pip wheel
