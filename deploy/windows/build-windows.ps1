@@ -47,13 +47,28 @@ if (-not (Test-Path (Join-Path $OutputDir "SelfDocs.exe"))) {
     throw "SelfDocs.exe was not created"
 }
 
-$MsysBinDir = "C:\msys64\ucrt64\bin"
+$MsysRoot = "C:\msys64"
 $InternalDir = Join-Path $OutputDir "_internal"
 $WeasyPrintDllDir = Join-Path $InternalDir "weasyprint-dlls"
 
-if (-not (Test-Path $MsysBinDir)) {
-    throw "MSYS2 UCRT64 bin directory was not found: $MsysBinDir"
+if (-not (Test-Path $MsysRoot)) {
+    throw "MSYS2 directory was not found: $MsysRoot"
 }
+
+$GObjectDll = Get-ChildItem `
+    -LiteralPath $MsysRoot `
+    -Filter "libgobject-2.0-0.dll" `
+    -File `
+    -Recurse `
+    -ErrorAction SilentlyContinue |
+    Select-Object -First 1
+
+if ($null -eq $GObjectDll) {
+    throw "libgobject-2.0-0.dll was not found under $MsysRoot"
+}
+
+$MsysBinDir = $GObjectDll.Directory.FullName
+Write-Host "Using MSYS2 runtime directory: $MsysBinDir"
 
 New-Item `
     -ItemType Directory `
