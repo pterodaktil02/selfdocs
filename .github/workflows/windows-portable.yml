@@ -44,6 +44,17 @@ jobs:
             mingw-w64-ucrt-x86_64-gdk-pixbuf2
             mingw-w64-ucrt-x86_64-libffi
 
+      - name: Stage WeasyPrint runtime DLLs
+        shell: msys2 {0}
+        run: |
+          set -euxo pipefail
+
+          mkdir -p deploy/windows/weasyprint-runtime
+          cp /ucrt64/bin/*.dll deploy/windows/weasyprint-runtime/
+
+          test -f deploy/windows/weasyprint-runtime/libgobject-2.0-0.dll
+          ls -lah deploy/windows/weasyprint-runtime | head
+
       - name: Configure WeasyPrint DLL path
         shell: pwsh
         run: |

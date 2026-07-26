@@ -47,28 +47,16 @@ if (-not (Test-Path (Join-Path $OutputDir "SelfDocs.exe"))) {
     throw "SelfDocs.exe was not created"
 }
 
-$MsysRoot = "C:\msys64"
+$RuntimeSourceDir = Join-Path `
+    $ProjectRoot `
+    "deploy\windows\weasyprint-runtime"
+
 $InternalDir = Join-Path $OutputDir "_internal"
 $WeasyPrintDllDir = Join-Path $InternalDir "weasyprint-dlls"
 
-if (-not (Test-Path $MsysRoot)) {
-    throw "MSYS2 directory was not found: $MsysRoot"
+if (-not (Test-Path $RuntimeSourceDir)) {
+    throw "Staged WeasyPrint runtime directory was not found: $RuntimeSourceDir"
 }
-
-$GObjectDll = Get-ChildItem `
-    -LiteralPath $MsysRoot `
-    -Filter "libgobject-2.0-0.dll" `
-    -File `
-    -Recurse `
-    -ErrorAction SilentlyContinue |
-    Select-Object -First 1
-
-if ($null -eq $GObjectDll) {
-    throw "libgobject-2.0-0.dll was not found under $MsysRoot"
-}
-
-$MsysBinDir = $GObjectDll.Directory.FullName
-Write-Host "Using MSYS2 runtime directory: $MsysBinDir"
 
 New-Item `
     -ItemType Directory `
@@ -77,16 +65,24 @@ New-Item `
 
 $SourceDllFiles = @(
     Get-ChildItem `
-        -LiteralPath $MsysBinDir `
+        -LiteralPath $RuntimeSourceDir `
         -Filter "*.dll" `
         -File
 )
 
 if ($SourceDllFiles.Count -eq 0) {
-    throw "No runtime DLL files found in: $MsysBinDir"
+    throw "No staged WeasyPrint runtime DLL files were found"
 }
 
-Write-Host "Found $($SourceDllFiles.Count) runtime DLL files in MSYS2"
+$RequiredGObjectDll = Join-Path `
+    $RuntimeSourceDir `
+    "libgobject-2.0-0.dll"
+
+if (-not (Test-Path $RequiredGObjectDll)) {
+    throw "Staged libgobject-2.0-0.dll was not found"
+}
+
+Write-Host "Found $($SourceDllFiles.Count) staged runtime DLL files"
 
 $SourceDllFiles | Copy-Item `
     -Destination $WeasyPrintDllDir `
