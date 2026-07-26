@@ -1,0 +1,70 @@
+name: Windows portable
+
+on:
+  workflow_dispatch:
+  push:
+    branches:
+      - windows-portable
+    paths:
+      - "app/**"
+      - "static/**"
+      - "windows_launcher.py"
+      - "requirements.txt"
+      - "requirements-windows.txt"
+      - "deploy/windows/**"
+      - ".github/workflows/windows-portable.yml"
+
+permissions:
+  contents: read
+
+jobs:
+  build:
+    runs-on: windows-latest
+
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Set up Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: "3.12"
+          cache: pip
+          cache-dependency-path: |
+            requirements.txt
+            requirements-windows.txt
+
+      - name: Install MSYS2 and Pango
+        uses: msys2/setup-msys2@v2
+        with:
+          msystem: UCRT64
+          update: true
+          install: >-
+            mingw-w64-ucrt-x86_64-pango
+            mingw-w64-ucrt-x86_64-gdk-pixbuf2
+            mingw-w64-ucrt-x86_64-libffi
+
+      - name: Configure WeasyPrint DLL path
+        shell: pwsh
+        run: |
+          "WEASYPRINT_DLL_DIRECTORIES=C:\msys64\ucrt64\bin" |
+            Out-File -FilePath $env:GITHUB_ENV -Encoding utf8 -Append
+
+      - name: Build portable application
+        shell: pwsh
+        run: ./deploy/windows/build-windows.ps1
+
+      - name: Verify build output
+        shell: pwsh
+        run: |
+          if (-not (Test-Path "dist/SelfDocs/SelfDocs.exe")) {
+            throw "SelfDocs.exe is missing"
+          }
+
+      - name: Upload portable ZIP
+        uses: actions/upload-artifact@v4
+        with:
+          name: SelfDocs-windows-x64
+          path: dist/SelfDocs-windows-x64.zip
+          if-no-files-found: error
+          retention-days: 14

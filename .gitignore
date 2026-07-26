@@ -38,3 +38,9 @@ dist/
 *.swp
 .DS_Store
 Thumbs.db
+
+# Windows portable build
+.venv-windows/
+build/
+dist/
+*.spec.bak
