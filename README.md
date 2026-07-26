@@ -10,23 +10,24 @@ SelfDocs - локальное веб-приложение для подгото�
 - формировать акты выполненных работ;
 - формировать приложения к договору;
 - хранить реквизиты исполнителя;
-- добавлять подпись в документы;
+- добавлять изображение подписи;
 - выгружать документы в PDF.
 
-Проект рассчитан прежде всего на локальное использование индивидуальным исполнителем или небольшой организацией.
+Проект рассчитан прежде всего на индивидуального исполнителя или небольшую организацию.
 
 ## Возможности
 
-- локальная база данных SQLite;
-- авторизация администратора;
+- локальная база SQLite;
 - первоначальная настройка через веб-интерфейс;
+- авторизация администратора;
 - смена логина и пароля;
-- управление заказчиками и заказами;
-- генерация документов в PDF;
+- управление заказчиками;
+- управление заказами;
+- генерация PDF;
 - загрузка изображения подписи;
 - защита форм от CSRF;
-- хранение паролей в виде Argon2-хеша;
-- встроенная самопроверка.
+- хранение пароля в виде Argon2-хеша;
+- встроенные тесты и самопроверка.
 
 ## Технологии
 
@@ -43,205 +44,59 @@ SelfDocs - локальное веб-приложение для подгото�
 
 ## Требования
 
-Рекомендуемая система:
+Поддерживаемая конфигурация:
 
 - Debian 12 или Debian 13;
 - Python 3.11 или новее;
-- nginx;
 - systemd;
-- не менее 512 МБ оперативной памяти.
+- nginx;
+- не менее 512 МБ оперативной памяти;
+- доступ к серверу с правами root.
 
-## Установка на Debian
+## Быстрая установка
 
-### 1. Установить системные зависимости
-
-```bash
-apt update
-
-apt install -y \
-  python3 \
-  python3-venv \
-  python3-pip \
-  nginx \
-  libcairo2 \
-  libpango-1.0-0 \
-  libpangoft2-1.0-0 \
-  libgdk-pixbuf-2.0-0 \
-  libffi-dev \
-  shared-mime-info
-```
-
-### 2. Создать системного пользователя
+Клонировать репозиторий:
 
 ```bash
-useradd \
-  --system \
-  --home /opt/selfdocs \
-  --shell /usr/sbin/nologin \
-  selfdocs
+cd /root
+
+git clone \
+  https://github.com/pterodaktil02/selfdocs.git \
+  selfdocs-src
+
+cd selfdocs-src
 ```
 
-### 3. Разместить приложение
+Запустить установщик:
 
 ```bash
-mkdir -p /opt/selfdocs
+./deploy/install-debian.sh
 ```
 
-Скопировать файлы проекта в каталог:
+Установщик автоматически:
+
+- установит системные зависимости;
+- создаст системного пользователя `selfdocs`;
+- скопирует приложение в `/opt/selfdocs`;
+- создаст виртуальное окружение Python;
+- установит зависимости из `requirements.txt`;
+- создаст пустой каталог рабочих данных;
+- установит unit systemd;
+- настроит nginx;
+- запустит приложение;
+- проверит endpoint `/health`.
+
+После завершения установки открыть:
 
 ```text
-/opt/selfdocs
+http://IP_СЕРВЕРА/setup
 ```
 
-### 4. Создать виртуальное окружение
-
-```bash
-cd /opt/selfdocs
-
-python3 -m venv venv
-
-./venv/bin/pip install --upgrade pip
-./venv/bin/pip install -r requirements.txt
-```
-
-### 5. Создать каталог данных
-
-```bash
-install -d \
-  -o selfdocs \
-  -g selfdocs \
-  -m 700 \
-  /opt/selfdocs/data
-```
-
-Исходный код рекомендуется оставить владельцу `root`, а рабочие данные передать пользователю `selfdocs`:
-
-```bash
-chown -R root:root \
-  /opt/selfdocs/app \
-  /opt/selfdocs/scripts \
-  /opt/selfdocs/static \
-  /opt/selfdocs/tests
-
-chown -R selfdocs:selfdocs /opt/selfdocs/data
-```
-
-## Настройка systemd
-
-Создать файл:
-
-```text
-/etc/systemd/system/selfdocs.service
-```
-
-Содержимое:
-
-```ini
-[Unit]
-Description=SelfDocs document generator
-After=network.target
-
-[Service]
-Type=simple
-User=selfdocs
-Group=selfdocs
-WorkingDirectory=/opt/selfdocs
-
-ExecStart=/opt/selfdocs/venv/bin/uvicorn app.main:app \
-    --host 127.0.0.1 \
-    --port 8000 \
-    --workers 1
-
-Restart=on-failure
-RestartSec=3
-
-PrivateTmp=true
-NoNewPrivileges=true
-ProtectSystem=strict
-ProtectHome=true
-ReadWritePaths=/opt/selfdocs/data
-
-[Install]
-WantedBy=multi-user.target
-```
-
-Активировать сервис:
-
-```bash
-systemctl daemon-reload
-systemctl enable --now selfdocs
-```
-
-Проверить состояние:
-
-```bash
-systemctl status selfdocs --no-pager -l
-curl http://127.0.0.1:8000/health
-```
-
-Ожидаемый ответ:
-
-```json
-{"status":"ok"}
-```
-
-## Настройка nginx
-
-Создать файл:
-
-```text
-/etc/nginx/sites-available/selfdocs
-```
-
-Пример конфигурации:
-
-```nginx
-server {
-    listen 80;
-    server_name _;
-
-    client_max_body_size 10m;
-
-    location /static/ {
-        alias /opt/selfdocs/static/;
-        access_log off;
-        expires 7d;
-    }
-
-    location / {
-        proxy_pass http://127.0.0.1:8000;
-
-        proxy_http_version 1.1;
-
-        proxy_set_header Host $host;
-        proxy_set_header X-Real-IP $remote_addr;
-        proxy_set_header X-Forwarded-For $proxy_add_x_forwarded_for;
-        proxy_set_header X-Forwarded-Proto $scheme;
-    }
-}
-```
-
-Активировать конфигурацию:
-
-```bash
-ln -s /etc/nginx/sites-available/selfdocs \
-  /etc/nginx/sites-enabled/selfdocs
-
-rm -f /etc/nginx/sites-enabled/default
-
-nginx -t
-systemctl reload nginx
-```
-
-После этого приложение будет доступно по адресу:
-
-```text
-http://IP_СЕРВЕРА/
-```
+Логин и пароль заранее не создаются.
 
 ## Первый запуск
 
-При первом открытии приложение перенаправит пользователя на страницу:
+При первом открытии приложение перенаправит на страницу:
 
 ```text
 /setup
@@ -262,6 +117,50 @@ http://IP_СЕРВЕРА/
 
 Пароль в открытом виде не сохраняется.
 
+## Управление сервисом
+
+Статус:
+
+```bash
+systemctl status selfdocs --no-pager -l
+```
+
+Перезапуск:
+
+```bash
+systemctl restart selfdocs
+```
+
+Остановка:
+
+```bash
+systemctl stop selfdocs
+```
+
+Запуск:
+
+```bash
+systemctl start selfdocs
+```
+
+Журнал:
+
+```bash
+journalctl -u selfdocs -n 100 --no-pager
+```
+
+Проверка работоспособности:
+
+```bash
+curl http://127.0.0.1:8000/health
+```
+
+Ожидаемый ответ:
+
+```json
+{"status":"ok"}
+```
+
 ## Смена логина и пароля
 
 Логин и пароль можно изменить через интерфейс:
@@ -270,7 +169,7 @@ http://IP_СЕРВЕРА/
 Настройки -> Безопасность
 ```
 
-После смены учетных данных прежние сессии становятся недействительными.
+После изменения учетных данных прежние сессии становятся недействительными.
 
 ## Аварийный сброс пароля
 
@@ -282,7 +181,7 @@ runuser -u selfdocs -- \
   /opt/selfdocs/scripts/reset_password.py
 ```
 
-После изменения учетных данных рекомендуется перезапустить сервис:
+После изменения учетных данных:
 
 ```bash
 systemctl restart selfdocs
@@ -296,7 +195,7 @@ systemctl restart selfdocs
 /opt/selfdocs/data
 ```
 
-В нем могут находиться:
+Там могут находиться:
 
 ```text
 selfdocs.sqlite3
@@ -308,13 +207,12 @@ private/signature.png
 
 Каталог `data`:
 
-- не должен добавляться в Git;
+- не входит в Git;
 - не должен раздаваться через nginx;
-- должен быть доступен на запись только пользователю `selfdocs`.
+- должен принадлежать пользователю `selfdocs`;
+- должен быть включен в резервное копирование.
 
 ## Резервное копирование
-
-Для полного резервного копирования достаточно сохранить каталог `data`.
 
 Остановить приложение:
 
@@ -336,27 +234,39 @@ tar -C /opt/selfdocs \
 systemctl start selfdocs
 ```
 
-### Восстановление
+## Восстановление
+
+Остановить приложение:
 
 ```bash
 systemctl stop selfdocs
+```
 
+Удалить текущий каталог данных и распаковать резервную копию:
+
+```bash
 rm -rf /opt/selfdocs/data
 
 tar -C /opt/selfdocs \
   -xzf /root/selfdocs-data-backup.tar.gz
+```
 
+Восстановить владельца и права:
+
+```bash
 chown -R selfdocs:selfdocs /opt/selfdocs/data
 chmod 700 /opt/selfdocs/data
+```
 
+Запустить приложение:
+
+```bash
 systemctl start selfdocs
 ```
 
 ## Обновление
 
-Перед обновлением необходимо сохранить каталог `data`.
-
-Пример:
+Перед обновлением сохранить данные:
 
 ```bash
 systemctl stop selfdocs
@@ -366,27 +276,61 @@ cp -a \
   /opt/selfdocs-data-backup
 ```
 
-После замены исходного кода:
+Получить свежую версию исходного кода:
 
 ```bash
-cd /opt/selfdocs
-
-./venv/bin/pip install -r requirements.txt
-
-chown -R root:root app scripts static tests
-chown -R selfdocs:selfdocs data
-
-systemctl restart selfdocs
+cd /root/selfdocs-src
+git pull
 ```
 
-## Проверка установки
+Повторно запустить установщик:
+
+```bash
+./deploy/install-debian.sh
+```
+
+Каталог `/opt/selfdocs/data` установщик не удаляет и не перезаписывает.
+
+## Ручная установка
+
+Для ручной установки используются готовые файлы:
+
+```text
+deploy/systemd/selfdocs.service
+deploy/nginx/selfdocs.conf
+```
+
+Основной каталог приложения:
+
+```text
+/opt/selfdocs
+```
+
+Рабочий процесс запускается от отдельного системного пользователя:
+
+```text
+selfdocs
+```
+
+Uvicorn слушает только локальный адрес:
+
+```text
+127.0.0.1:8000
+```
+
+Внешний доступ осуществляется через nginx.
+
+## Проверка проекта
 
 Проверка синтаксиса Python:
 
 ```bash
 cd /opt/selfdocs
 
-./venv/bin/python -m compileall -q app scripts
+./venv/bin/python -m compileall -q \
+  app \
+  scripts \
+  tests
 ```
 
 Встроенная самопроверка:
@@ -397,32 +341,31 @@ runuser -u selfdocs -- \
   /opt/selfdocs/scripts/selftest.py
 ```
 
-Проверка HTTP:
+Запуск тестов:
 
 ```bash
-curl http://127.0.0.1:8000/health
+cd /opt/selfdocs
+
+./venv/bin/python -m pytest
 ```
 
 ## Безопасность
 
 SelfDocs рассчитан прежде всего на работу в локальной сети.
 
-При публикации приложения в интернет необходимо дополнительно настроить:
+При публикации в интернет необходимо дополнительно настроить:
 
 - HTTPS;
 - firewall;
-- ограничение доступа по IP или VPN;
+- доступ через VPN или ограничение по IP;
 - регулярное резервное копирование;
-- обновление операционной системы и Python-зависимостей;
+- обновление операционной системы;
+- обновление Python-зависимостей;
 - надежный пароль администратора.
 
-Порт Uvicorn `8000` не следует публиковать наружу. Он должен слушать только:
+Порт `8000` не должен быть доступен извне. Внешние подключения должны проходить через nginx или другой обратный прокси.
 
-```text
-127.0.0.1
-```
-
-Внешние подключения должны проходить через nginx или другой обратный прокси.
+Каталог `/opt/selfdocs/data` не должен находиться внутри статического web-каталога и не должен раздаваться nginx.
 
 ## Структура проекта
 
@@ -434,16 +377,16 @@ app/templates/documents/     шаблоны документов
 static/                      CSS и JavaScript
 scripts/                     служебные скрипты
 tests/                       автоматические тесты
-data/                        рабочие данные, не входит в Git
+deploy/                      установщик и конфигурации
 requirements.txt             зависимости Python
+README.md                    документация
+LICENSE                      текст лицензии
 ```
 
 ## Лицензия
 
-SelfDocs распространяется на условиях GNU General Public License версии 3
-или любой более поздней версии по выбору пользователя.
+SelfDocs распространяется на условиях GNU General Public License версии 3 или любой более поздней версии по выбору пользователя.
 
 Полный текст лицензии находится в файле [LICENSE](LICENSE).
 
-При распространении измененной версии исходный код производной работы
-также должен быть доступен на условиях GNU GPL.
+При распространении измененной версии исходный код производной работы также должен быть доступен на условиях GNU GPL.
