@@ -60,20 +60,35 @@ New-Item `
     -Path $WeasyPrintDllDir `
     -Force | Out-Null
 
-Copy-Item `
-    -Path (Join-Path $MsysBinDir "*.dll") `
+$SourceDllFiles = @(
+    Get-ChildItem `
+        -LiteralPath $MsysBinDir `
+        -Filter "*.dll" `
+        -File
+)
+
+if ($SourceDllFiles.Count -eq 0) {
+    throw "No runtime DLL files found in: $MsysBinDir"
+}
+
+Write-Host "Found $($SourceDllFiles.Count) runtime DLL files in MSYS2"
+
+$SourceDllFiles | Copy-Item `
     -Destination $WeasyPrintDllDir `
     -Force
 
-$DllCount = @(
-    Get-ChildItem $WeasyPrintDllDir -Filter "*.dll" -File
-).Count
+$CopiedDllFiles = @(
+    Get-ChildItem `
+        -LiteralPath $WeasyPrintDllDir `
+        -Filter "*.dll" `
+        -File
+)
 
-if ($DllCount -eq 0) {
+if ($CopiedDllFiles.Count -eq 0) {
     throw "No WeasyPrint runtime DLL files were copied"
 }
 
-Write-Host "Copied $DllCount WeasyPrint runtime DLL files"
+Write-Host "Copied $($CopiedDllFiles.Count) WeasyPrint runtime DLL files"
 
 New-Item `
     -ItemType Directory `
