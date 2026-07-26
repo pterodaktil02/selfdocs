@@ -65,7 +65,7 @@ Copy-Item `
     -Destination $WeasyPrintDllDir `
     -Force
 
-$DllCount = (
+$DllCount = @(
     Get-ChildItem $WeasyPrintDllDir -Filter "*.dll" -File
 ).Count
 
