@@ -47,6 +47,34 @@ if (-not (Test-Path (Join-Path $OutputDir "SelfDocs.exe"))) {
     throw "SelfDocs.exe was not created"
 }
 
+$MsysBinDir = "C:\msys64\ucrt64\bin"
+$InternalDir = Join-Path $OutputDir "_internal"
+$WeasyPrintDllDir = Join-Path $InternalDir "weasyprint-dlls"
+
+if (-not (Test-Path $MsysBinDir)) {
+    throw "MSYS2 UCRT64 bin directory was not found: $MsysBinDir"
+}
+
+New-Item `
+    -ItemType Directory `
+    -Path $WeasyPrintDllDir `
+    -Force | Out-Null
+
+Copy-Item `
+    -Path (Join-Path $MsysBinDir "*.dll") `
+    -Destination $WeasyPrintDllDir `
+    -Force
+
+$DllCount = (
+    Get-ChildItem $WeasyPrintDllDir -Filter "*.dll" -File
+).Count
+
+if ($DllCount -eq 0) {
+    throw "No WeasyPrint runtime DLL files were copied"
+}
+
+Write-Host "Copied $DllCount WeasyPrint runtime DLL files"
+
 New-Item `
     -ItemType Directory `
     -Path (Join-Path $OutputDir "data") `
