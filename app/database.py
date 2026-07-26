@@ -1,3 +1,6 @@
+# Copyright (C) 2026 pterodaktil02
+# SPDX-License-Identifier: GPL-3.0-or-later
+
 from sqlalchemy import create_engine, event
 from sqlalchemy.orm import DeclarativeBase, sessionmaker
 

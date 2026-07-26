@@ -1,3 +1,6 @@
+# Copyright (C) 2026 pterodaktil02
+# SPDX-License-Identifier: GPL-3.0-or-later
+
 from app.auth import csrf_valid, make_csrf_token, safe_next_url
 
 

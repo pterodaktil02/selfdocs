@@ -1,3 +1,6 @@
+# Copyright (C) 2026 pterodaktil02
+# SPDX-License-Identifier: GPL-3.0-or-later
+
 from collections import Counter
 
 from app.main import app
