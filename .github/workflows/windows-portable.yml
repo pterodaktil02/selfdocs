@@ -4,10 +4,12 @@ on:
   workflow_dispatch:
   push:
     branches:
-      - windows-portable
+      - main
     paths:
       - "app/**"
       - "static/**"
+      - "tests/**"
+      - "scripts/**"
       - "windows_launcher.py"
       - "requirements.txt"
       - "requirements-windows.txt"
@@ -17,13 +19,48 @@ on:
 permissions:
   contents: read
 
+concurrency:
+  group: selfdocs-release
+  cancel-in-progress: false
+
 jobs:
+  test:
+    name: Application tests
+    runs-on: ubuntu-latest
+
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.12"
+          cache: pip
+
+      - name: Install system dependencies
+        run: |
+          sudo apt-get update
+          sudo apt-get install -y libpango-1.0-0 libpangoft2-1.0-0
+
+      - name: Install Python dependencies
+        run: |
+          python -m pip install -r requirements.txt
+          python -m pip install pytest httpx
+
+      - name: Check Python syntax
+        run: python -m compileall -q app
+
+      - name: Run tests
+        run: python -m pytest -q tests
+
   build:
+    needs: test
     runs-on: windows-latest
 
     steps:
       - name: Checkout
         uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
 
       - name: Set up Python
         uses: actions/setup-python@v5
@@ -79,3 +116,82 @@ jobs:
           path: dist/SelfDocs-windows-x64.zip
           if-no-files-found: error
           retention-days: 14
+
+
+  release:
+    name: Publish release
+    needs: build
+    if: github.ref == 'refs/heads/main'
+    runs-on: ubuntu-latest
+
+    permissions:
+      contents: write
+
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+
+      - name: Download Windows build
+        uses: actions/download-artifact@v4
+        with:
+          name: SelfDocs-windows-x64
+          path: release
+
+      - name: Publish version
+        shell: bash
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          set -euo pipefail
+
+          git fetch --tags origin
+
+          if [ "$(git rev-parse origin/main)" != "$GITHUB_SHA" ]; then
+            echo "A newer commit exists. Skipping outdated release."
+            exit 0
+          fi
+
+          if git tag --points-at "$GITHUB_SHA" |
+             grep -Eq '^v[0-9]+\.[0-9]+\.[0-9]+$'; then
+            echo "This commit already has a version."
+            exit 0
+          fi
+
+          LAST_TAG="$(git tag --list |
+            grep -E '^v[0-9]+\.[0-9]+\.[0-9]+$' |
+            sort -V | tail -n 1 || true)"
+
+          LAST_TAG="${LAST_TAG:-v0.0.0}"
+
+          IFS=. read -r MAJOR MINOR PATCH <<< "${LAST_TAG#v}"
+
+          TAG="v${MAJOR}.${MINOR}.$((PATCH + 1))"
+
+          echo "Publishing SelfDocs $TAG"
+
+          if git rev-parse "$LAST_TAG" >/dev/null 2>&1; then
+            git log "$LAST_TAG..$GITHUB_SHA" --format='%s%n%n%b%n' > release-notes.md
+          else
+            git log -1 "$GITHUB_SHA" --format='%B' > release-notes.md
+          fi
+
+          printf '\n## Windows\n\n' >> release-notes.md
+          printf 'Портативная версия SelfDocs для Windows x64.\n\n' >> release-notes.md
+          printf 'Перед обновлением создайте резервную копию каталога data.\n' >> release-notes.md
+
+          test -s release/SelfDocs-windows-x64.zip
+          unzip -tq release/SelfDocs-windows-x64.zip
+
+          cd release
+          sha256sum SelfDocs-windows-x64.zip > SHA256SUMS.txt
+          cd ..
+
+          gh release create "$TAG" \
+            release/SelfDocs-windows-x64.zip \
+            release/SHA256SUMS.txt \
+            --target "$GITHUB_SHA" \
+            --title "SelfDocs $TAG" \
+            --notes-file release-notes.md \
+            --latest
