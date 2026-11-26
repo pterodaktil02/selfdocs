@@ -20,7 +20,7 @@ from app.models import (
     OrderItem,
 )
 from app.paths import TEMPLATE_DIR
-from app.forms import clean, validate_digits
+from app.forms import clean, validate_contract, validate_digits
 
 
 templates = Jinja2Templates(directory=TEMPLATE_DIR)
@@ -48,6 +48,8 @@ CLIENT_FIELDS = (
     "phone",
     "email",
     "comment",
+    "contract_number",
+    "contract_date",
 )
 
 
@@ -142,15 +144,22 @@ def posted_client(form) -> dict:
             "Полное наименование заказчика обязательно."
         )
 
+    values["contract_number"], values["contract_date"] = (
+        validate_contract(
+            values["contract_number"],
+            values["contract_date"],
+        )
+    )
+
     return values
 
 
-def client_values(instance: Client) -> dict:
+def get_client_values(instance: Client) -> dict:
     return {field: clean(getattr(instance, field, "")) for field in CLIENT_FIELDS}
 
 
 def client_values_changed(client: Client, values: dict) -> bool:
-    current = client_values(client)
+    current = get_client_values(client)
     return any(current[field] != clean(values[field]) for field in CLIENT_FIELDS)
 
 
@@ -172,6 +181,10 @@ def resolve_existing_client(
     return db.scalar(statement)
 
 
+class ClientUpdateDecisionRequired(ValueError):
+    pass
+
+
 def require_client_update_decision(
     client: Client | None,
     values: dict,
@@ -180,7 +193,7 @@ def require_client_update_decision(
     if client is None or not client_values_changed(client, values):
         return
     if mode not in {"update", "one_time"}:
-        raise ValueError(
+        raise ClientUpdateDecisionRequired(
             "Реквизиты заказчика изменены. Выбери: обновить карточку "
             "или использовать изменения только в этом заказе."
         )
@@ -202,14 +215,32 @@ def find_or_create_client(
     if client is not None:
         if update_client_card:
             for field in CLIENT_FIELDS:
-                setattr(client, field, values[field])
+                setattr(
+                    client,
+                    field,
+                    (
+                        date.fromisoformat(values[field])
+                        if values[field] else None
+                    )
+                    if field == "contract_date"
+                    else values[field],
+                )
             db.flush()
         return client
 
     client = Client()
 
     for field in CLIENT_FIELDS:
-        setattr(client, field, values[field])
+        setattr(
+                    client,
+                    field,
+                    (
+                        date.fromisoformat(values[field])
+                        if values[field] else None
+                    )
+                    if field == "contract_date"
+                    else values[field],
+                )
 
     db.add(client)
     db.flush()
@@ -547,17 +578,33 @@ async def create_order(
             status_code=400,
             context={
                 "active_page": "new_order",
-                "form": form_after_error(form),
+                "form": {
+                    **form_after_error(form),
+                    "selected_client_id": (
+                        str(existing_client.id)
+                        if existing_client is not None
+                        else clean(form.get("selected_client_id"))
+                    ),
+                },
+                "client_choice_required": isinstance(
+                    exc, ClientUpdateDecisionRequired
+                ),
                 "selected_client_card": (
-                    client_values(existing_client) if existing_client else {}
+                    get_client_values(existing_client) if existing_client else {}
                 ),
                 "page_title": "Оформление документов",
                 "page_description": (
-                    "Исправь отмеченную ошибку и сохрани заказ."
+                    "Выбери способ сохранения реквизитов."
+                    if isinstance(exc, ClientUpdateDecisionRequired)
+                    else "Исправь отмеченную ошибку и сохрани заказ."
                 ),
                 "form_action": "/orders/new",
                 "is_editing": False,
-                "error": str(exc),
+                "error": (
+                    None
+                    if isinstance(exc, ClientUpdateDecisionRequired)
+                    else str(exc)
+                ),
             },
         )
 
@@ -754,7 +801,11 @@ def edit_order_page(
         context={
             "active_page": "orders",
             "form": order_form_values(order),
-            "selected_client_card": client_values(order.client),
+            "selected_client_card": get_client_values(order.client),
+            "saved_client_snapshot": json.loads(
+                order.client_snapshot_json or "{}"
+            ),
+            "saved_client_id": str(order.client_id),
             "document_number": order.document_number,
             "page_title": (
                 f"Редактирование заказа № "
@@ -786,6 +837,7 @@ async def update_order(
         )
 
     form = await request.form()
+    existing_client = None
 
     try:
         document_date = parse_date(
@@ -832,11 +884,26 @@ async def update_order(
             selected_client_id=selected_client_id,
             values=client_values,
         )
-        require_client_update_decision(
-            existing_client,
-            client_values,
-            client_update_mode,
+        saved_client = json.loads(
+            order.client_snapshot_json or "{}"
         )
+
+        same_snapshot = (
+            existing_client is not None
+            and existing_client.id == order.client_id
+            and all(
+                clean(saved_client.get(field))
+                == clean(client_values[field])
+                for field in CLIENT_FIELDS
+            )
+        )
+
+        if not same_snapshot:
+            require_client_update_decision(
+                existing_client,
+                client_values,
+                client_update_mode,
+            )
         client = find_or_create_client(
             db,
             selected_client_id=selected_client_id,
@@ -884,20 +951,44 @@ async def update_order(
             status_code=400,
             context={
                 "active_page": "orders",
-                "form": form_after_error(form),
-                "selected_client_card": client_values(order.client),
+                "form": {
+                    **form_after_error(form),
+                    "selected_client_id": (
+                        str(existing_client.id)
+                        if existing_client is not None
+                        else clean(form.get("selected_client_id"))
+                    ),
+                },
+                "client_choice_required": isinstance(
+                    exc, ClientUpdateDecisionRequired
+                ),
+                "selected_client_card": (
+                    get_client_values(existing_client)
+                    if existing_client is not None
+                    else {}
+                ),
+                "saved_client_snapshot": json.loads(
+                    order.client_snapshot_json or "{}"
+                ),
+                "saved_client_id": str(order.client_id),
                 "document_number": order.document_number,
                 "page_title": (
                     f"Редактирование заказа № "
                     f"{order.document_number}"
                 ),
                 "page_description": (
-                    "Исправь отмеченную ошибку и сохрани заказ."
+                    "Выбери способ сохранения реквизитов."
+                    if isinstance(exc, ClientUpdateDecisionRequired)
+                    else "Исправь отмеченную ошибку и сохрани заказ."
                 ),
                 "form_action": f"/orders/{order.id}/edit",
                 "submit_text": "Сохранить изменения",
                 "is_editing": True,
-                "error": str(exc),
+                "error": (
+                    None
+                    if isinstance(exc, ClientUpdateDecisionRequired)
+                    else str(exc)
+                ),
             },
         )
 

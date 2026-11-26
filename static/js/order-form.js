@@ -21,6 +21,8 @@
         phone: "client-phone",
         email: "client-email",
         comment: "client-comment",
+        contract_number: "client-contract-number",
+        contract_date: "client-contract-date",
     };
 
     const selectedClientId = document.getElementById("selected-client-id");
@@ -41,6 +43,19 @@
     let fillingClient = false;
     let originalClientData = null;
 
+    const submitButton = form.querySelector(
+        'button[type="submit"]'
+    );
+
+    const savedClientId = document.getElementById(
+        "saved-client-id"
+    )?.value || "";
+
+    const savedClientData = JSON.parse(
+        document.getElementById("saved-client-data")
+            ?.textContent || "{}"
+    );
+
     function normalized(value) {
         return String(value ?? "").trim();
     }
@@ -57,9 +72,21 @@
     function clientDataChanged() {
         if (!selectedClientId.value || !originalClientData) return false;
         const current = currentClientData();
-        return Object.keys(clientFieldMap).some(
-            (field) => current[field] !== normalized(originalClientData[field])
-        );
+        const differs = (baseline) =>
+            Object.keys(clientFieldMap).some(
+                (field) =>
+                    current[field] !== normalized(baseline[field])
+            );
+
+        if (!differs(originalClientData)) return false;
+
+        if (
+            selectedClientId.value === savedClientId &&
+            Object.keys(savedClientData).length &&
+            !differs(savedClientData)
+        ) return false;
+
+        return true;
     }
 
     function clearClientUpdateChoice() {
@@ -72,6 +99,14 @@
         const changed = clientDataChanged();
         clientUpdateChoice.hidden = !changed;
         if (!changed) clearClientUpdateChoice();
+
+        const chosen = form.querySelector(
+            '[name="client_update_mode"]:checked'
+        );
+
+        if (submitButton) {
+            submitButton.disabled = changed && !chosen;
+        }
     }
 
     function closeSuggestions() {
@@ -240,13 +275,23 @@
     startDate.addEventListener("change", () => normalizeDates("start"));
     endDate.addEventListener("change", () => normalizeDates("end"));
 
+    form.querySelectorAll(
+        '[name="client_update_mode"]'
+    ).forEach((radio) => {
+        radio.addEventListener(
+            "change", refreshClientUpdateChoice
+        );
+    });
+
     form.addEventListener("submit", (event) => {
         if (!clientDataChanged()) return;
         if (form.querySelector('[name="client_update_mode"]:checked')) return;
         event.preventDefault();
         clientUpdateChoice.hidden = false;
         clientUpdateChoice.scrollIntoView({ behavior: "smooth", block: "center" });
-        alert("Выбери: обновить карточку заказчика или использовать изменения только в этом заказе.");
+        clientUpdateChoice.querySelector(
+            'input[type="radio"]'
+        )?.focus();
     });
 
     try {

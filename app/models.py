@@ -83,6 +83,13 @@ class Client(Base):
     email: Mapped[str] = mapped_column(String(255), default="")
     comment: Mapped[str] = mapped_column(Text, default="")
 
+    contract_number: Mapped[str] = mapped_column(
+        String(100), default="", server_default=""
+    )
+    contract_date: Mapped[date | None] = mapped_column(
+        Date, nullable=True
+    )
+
     is_archived: Mapped[int] = mapped_column(Integer, default=0)
 
     created_at: Mapped[datetime] = mapped_column(DateTime, default=datetime.utcnow)

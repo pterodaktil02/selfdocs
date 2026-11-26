@@ -12,7 +12,7 @@
     </h1>
 
     <div class="document-subtitle">
-        от {{ order.document_date.strftime("%d.%m.%Y") }}
+        от {{ order.document_date.strftime("%d.%m.%Y") }}{% if client.contract_number and contract_date_text %} к договору № {{ client.contract_number }} от {{ contract_date_text }}{% endif %}
     </div>
 
     <table class="details-table">

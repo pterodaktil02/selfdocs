@@ -1,6 +1,7 @@
 # Copyright (C) 2026 pterodaktil02
 # SPDX-License-Identifier: GPL-3.0-or-later
 
+from datetime import date
 from typing import Annotated
 
 from fastapi import APIRouter, Depends, Form, Request
@@ -13,7 +14,7 @@ from app.auth import csrf_token
 from app.database import get_db
 from app.models import Client, Order
 from app.paths import TEMPLATE_DIR
-from app.forms import validate_digits
+from app.forms import validate_contract, validate_digits
 
 
 templates = Jinja2Templates(directory=TEMPLATE_DIR)
@@ -41,6 +42,11 @@ def client_to_dict(client: Client) -> dict:
         "phone": client.phone or "",
         "email": client.email or "",
         "comment": client.comment or "",
+        "contract_number": client.contract_number or "",
+        "contract_date": (
+            client.contract_date.isoformat()
+            if client.contract_date else ""
+        ),
     }
 
 
@@ -61,6 +67,8 @@ def apply_client_values(
     phone: str,
     email: str,
     comment: str,
+    contract_number: str = "",
+    contract_date: str = "",
 ) -> None:
     normalized_name = full_name.strip()
 
@@ -111,6 +119,14 @@ def apply_client_values(
     client.phone = phone.strip()
     client.email = email.strip()
     client.comment = comment.strip()
+
+    number, issued_at = validate_contract(
+        contract_number, contract_date
+    )
+    client.contract_number = number
+    client.contract_date = (
+        date.fromisoformat(issued_at) if issued_at else None
+    )
 
 
 @router.get("", response_class=HTMLResponse)
@@ -214,6 +230,8 @@ def update_client(
     phone: Annotated[str, Form()] = "",
     email: Annotated[str, Form()] = "",
     comment: Annotated[str, Form()] = "",
+    contract_number: Annotated[str, Form()] = "",
+    contract_date: Annotated[str, Form()] = "",
     db: Session = Depends(get_db),
 ):
     client = db.get(Client, client_id)
@@ -239,6 +257,8 @@ def update_client(
         "phone": phone,
         "email": email,
         "comment": comment,
+        "contract_number": contract_number,
+        "contract_date": contract_date,
     }
 
     try:
@@ -283,6 +303,8 @@ def update_client(
             phone=phone,
             email=email,
             comment=comment,
+            contract_number=contract_number,
+            contract_date=contract_date,
         )
 
         db.commit()

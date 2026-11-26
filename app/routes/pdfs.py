@@ -6,6 +6,7 @@ import json
 import logging
 import re
 from decimal import Decimal, ROUND_HALF_UP
+from datetime import date
 
 from fastapi import APIRouter, Depends
 from fastapi.responses import HTMLResponse, StreamingResponse
@@ -40,6 +41,16 @@ def parse_snapshot(value: str | None) -> dict:
         return {}
 
     return result if isinstance(result, dict) else {}
+
+
+def format_contract_date(value) -> str:
+    if not value:
+        return ""
+
+    try:
+        return date.fromisoformat(str(value)).strftime("%d.%m.%Y")
+    except ValueError:
+        return ""
 
 
 def decimal_value(value) -> Decimal:
@@ -192,6 +203,9 @@ def document_context(
         "order": order,
         "items": items,
         "client": client,
+        "contract_date_text": format_contract_date(
+            client.get("contract_date")
+        ),
         "contractor": contractor,
         "total": total,
         "total_text": format_decimal(total),

@@ -40,6 +40,7 @@
                     <tr>
                         <th>Заказчик</th>
                         <th>ИНН / КПП</th>
+                        <th>Договор</th>
                         <th>Банк</th>
                         <th>Контакты</th>
                         <th></th>
@@ -64,6 +65,19 @@
                             <td>
                                 <div>ИНН: {{ client.inn or "—" }}</div>
                                 <div>КПП: {{ client.kpp or "—" }}</div>
+                            </td>
+
+                            <td>
+                                {% if client.contract_number %}
+                                    <div>№ {{ client.contract_number }}</div>
+                                    {% if client.contract_date %}
+                                        <div class="secondary-text">
+                                            от {{ client.contract_date.strftime("%d.%m.%Y") }}
+                                        </div>
+                                    {% endif %}
+                                {% else %}
+                                    —
+                                {% endif %}
                             </td>
 
                             <td>

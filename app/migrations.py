@@ -3,9 +3,9 @@
 
 from __future__ import annotations
 
-from sqlalchemy import Engine, text
+from sqlalchemy import Engine, inspect, text
 
-CURRENT_SCHEMA_VERSION = 2
+CURRENT_SCHEMA_VERSION = 3
 
 
 def run_migrations(engine: Engine) -> None:
@@ -42,6 +42,28 @@ def run_migrations(engine: Engine) -> None:
             ))
             connection.execute(text("INSERT INTO schema_migrations(version) VALUES (2)"))
             current = 2
+        if current < 3:
+            columns = {
+                column["name"]
+                for column in inspect(connection).get_columns("clients")
+            }
+
+            if "contract_number" not in columns:
+                connection.execute(text(
+                    "ALTER TABLE clients ADD COLUMN "
+                    "contract_number VARCHAR(100) NOT NULL DEFAULT ''"
+                ))
+
+            if "contract_date" not in columns:
+                connection.execute(text(
+                    "ALTER TABLE clients ADD COLUMN contract_date DATE"
+                ))
+
+            connection.execute(text(
+                "INSERT INTO schema_migrations(version) VALUES (3)"
+            ))
+            current = 3
+
         if current > CURRENT_SCHEMA_VERSION:
             raise RuntimeError(
                 f"Database schema {current} is newer than application schema "

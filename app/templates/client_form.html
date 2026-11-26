@@ -71,6 +71,31 @@
     </section>
 
     <section class="card">
+        <h2>Договор</h2>
+
+        <div class="form-grid">
+            <label class="field">
+                <span>Номер договора</span>
+                <input
+                    type="text"
+                    name="contract_number"
+                    maxlength="100"
+                    value="{{ client.contract_number or '' }}"
+                >
+            </label>
+
+            <label class="field">
+                <span>Дата договора</span>
+                <input
+                    type="date"
+                    name="contract_date"
+                    value="{{ client.contract_date or '' }}"
+                >
+            </label>
+        </div>
+    </section>
+
+    <section class="card">
         <h2>Банковские реквизиты</h2>
 
         <div class="form-grid">
