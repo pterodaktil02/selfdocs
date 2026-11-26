@@ -29,6 +29,8 @@ router = APIRouter(
 def client_to_dict(client: Client) -> dict:
     return {
         "id": client.id,
+        "numbering_mode": client.numbering_mode,
+        "next_document_number": client.next_document_number,
         "full_name": client.full_name or "",
         "short_name": client.short_name or "",
         "inn": client.inn or "",
@@ -232,6 +234,8 @@ def update_client(
     comment: Annotated[str, Form()] = "",
     contract_number: Annotated[str, Form()] = "",
     contract_date: Annotated[str, Form()] = "",
+    numbering_mode: Annotated[str, Form()] = "global",
+    next_document_number: Annotated[str, Form()] = "1",
     db: Session = Depends(get_db),
 ):
     client = db.get(Client, client_id)
@@ -244,6 +248,8 @@ def update_client(
 
     values = {
         "id": client_id,
+        "numbering_mode": numbering_mode,
+        "next_document_number": next_document_number,
         "full_name": full_name,
         "short_name": short_name,
         "inn": inn,
@@ -306,6 +312,20 @@ def update_client(
             contract_number=contract_number,
             contract_date=contract_date,
         )
+
+        if numbering_mode not in {"global", "individual"}:
+            raise ValueError("Неверный режим нумерации.")
+
+        if (
+            not next_document_number.isascii()
+            or not next_document_number.isdecimal()
+            or len(next_document_number) > 12
+            or int(next_document_number) < 1
+        ):
+            raise ValueError("Укажите корректный следующий номер документов.")
+
+        client.numbering_mode = numbering_mode
+        client.next_document_number = int(next_document_number)
 
         db.commit()
 

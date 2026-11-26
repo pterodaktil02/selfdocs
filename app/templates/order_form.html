@@ -33,6 +33,35 @@
     <section class="card">
         <h2>Документ</h2>
 
+        {% if is_editing %}
+        <div class="form-grid">
+            <label class="field">
+                <span>Нумерация комплекта</span>
+                <select name="order_numbering_mode">
+                    <option value="global"
+                        {% if form.order_numbering_mode != "individual" %}selected{% endif %}>
+                        Общая
+                    </option>
+                    <option value="individual"
+                        {% if form.order_numbering_mode == "individual" %}selected{% endif %}>
+                        Индивидуальная
+                    </option>
+                </select>
+            </label>
+
+            <label class="field">
+                <span>Индивидуальный номер</span>
+                <input
+                    type="number"
+                    name="individual_document_number"
+                    min="1"
+                    max="999999999999"
+                    value="{{ form.individual_document_number or '' }}"
+                >
+            </label>
+        </div>
+        {% endif %}
+
         <div class="form-grid">
             <label class="field">
                 <span>Дата документа</span>

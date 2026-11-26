@@ -96,6 +96,42 @@
     </section>
 
     <section class="card">
+        <h2>Нумерация документов</h2>
+
+        <div class="form-grid">
+            <label class="field">
+                <span>Режим нумерации</span>
+                <select name="numbering_mode">
+                    <option value="global"
+                        {% if client.numbering_mode != "individual" %}selected{% endif %}>
+                        Общая нумерация
+                    </option>
+                    <option value="individual"
+                        {% if client.numbering_mode == "individual" %}selected{% endif %}>
+                        Индивидуальная нумерация
+                    </option>
+                </select>
+            </label>
+
+            <label class="field">
+                <span>Следующий индивидуальный номер</span>
+                <input
+                    type="number"
+                    name="next_document_number"
+                    min="1"
+                    max="999999999999"
+                    value="{{ client.next_document_number or 1 }}"
+                    required
+                >
+            </label>
+        </div>
+
+        <p class="secondary-text">
+            Индивидуальный номер применяется к счету, акту и приложению.
+        </p>
+    </section>
+
+    <section class="card">
         <h2>Банковские реквизиты</h2>
 
         <div class="form-grid">

@@ -5,7 +5,7 @@ from __future__ import annotations
 
 from sqlalchemy import Engine, inspect, text
 
-CURRENT_SCHEMA_VERSION = 3
+CURRENT_SCHEMA_VERSION = 4
 
 
 def run_migrations(engine: Engine) -> None:
@@ -63,6 +63,40 @@ def run_migrations(engine: Engine) -> None:
                 "INSERT INTO schema_migrations(version) VALUES (3)"
             ))
             current = 3
+
+        if current < 4:
+            additions = {
+                "clients": {
+                    "numbering_mode": "VARCHAR(20) NOT NULL DEFAULT 'global'",
+                    "next_document_number": "INTEGER NOT NULL DEFAULT 1",
+                },
+                "orders": {
+                    "individual_document_number": "INTEGER",
+                },
+            }
+
+            for table, fields in additions.items():
+                existing = {
+                    col["name"]
+                    for col in inspect(connection).get_columns(table)
+                }
+                for name, definition in fields.items():
+                    if name not in existing:
+                        connection.execute(text(
+                            f"ALTER TABLE {table} ADD COLUMN {name} {definition}"
+                        ))
+
+            connection.execute(text(
+                "CREATE UNIQUE INDEX IF NOT EXISTS "
+                "uq_orders_individual_number "
+                "ON orders(client_id, individual_document_number) "
+                "WHERE individual_document_number IS NOT NULL"
+            ))
+
+            connection.execute(text(
+                "INSERT INTO schema_migrations(version) VALUES (4)"
+            ))
+            current = 4
 
         if current > CURRENT_SCHEMA_VERSION:
             raise RuntimeError(

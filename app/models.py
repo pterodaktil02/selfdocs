@@ -90,6 +90,13 @@ class Client(Base):
         Date, nullable=True
     )
 
+    numbering_mode: Mapped[str] = mapped_column(
+        String(20), default="global", server_default="global"
+    )
+    next_document_number: Mapped[int] = mapped_column(
+        Integer, default=1, server_default="1"
+    )
+
     is_archived: Mapped[int] = mapped_column(Integer, default=0)
 
     created_at: Mapped[datetime] = mapped_column(DateTime, default=datetime.utcnow)
@@ -104,6 +111,26 @@ class Client(Base):
 
 class Order(Base):
     __tablename__ = "orders"
+    __table_args__ = (
+        Index(
+            "uq_orders_individual_number",
+            "client_id",
+            "individual_document_number",
+            unique=True,
+            sqlite_where=text("individual_document_number IS NOT NULL"),
+        ),
+    )
+
+    individual_document_number: Mapped[int | None] = mapped_column(
+        Integer, nullable=True
+    )
+
+    @property
+    def display_document_number(self):
+        if self.individual_document_number is not None:
+            return self.individual_document_number
+        return self.document_number
+
 
     id: Mapped[int] = mapped_column(Integer, primary_key=True)
 

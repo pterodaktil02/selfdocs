@@ -8,7 +8,7 @@ from decimal import Decimal, InvalidOperation
 from fastapi import APIRouter, Depends, Request
 from fastapi.responses import HTMLResponse, RedirectResponse
 from fastapi.templating import Jinja2Templates
-from sqlalchemy import select
+from sqlalchemy import select, update
 from sqlalchemy.orm import Session
 
 from app.auth import csrf_token
@@ -406,6 +406,12 @@ def form_after_error(form) -> dict:
 
     return {
         "document_date": clean(form.get("document_date")),
+        "order_numbering_mode": clean(
+            form.get("order_numbering_mode")
+        ),
+        "individual_document_number": clean(
+            form.get("individual_document_number")
+        ),
         "work_start_date": clean(form.get("work_start_date")),
         "work_end_date": clean(form.get("work_end_date")),
         "payment_days": clean(form.get("payment_days")),
@@ -557,6 +563,30 @@ async def create_order(
                 )
             )
 
+        if client.numbering_mode == "individual":
+            number = db.execute(
+                update(Client)
+                .where(Client.id == client.id)
+                .values(
+                    next_document_number=Client.next_document_number + 1
+                )
+                .returning(Client.next_document_number)
+            ).scalar_one() - 1
+
+            duplicate = db.scalar(
+                select(Order.id).where(
+                    Order.client_id == client.id,
+                    Order.individual_document_number == number,
+                )
+            )
+
+            if duplicate is not None:
+                raise ValueError(
+                    f"Индивидуальный номер {number} уже используется."
+                )
+
+            order.individual_document_number = number
+
         db.add(order)
         db.flush()
 
@@ -675,6 +705,16 @@ def order_form_values(order: Order) -> dict:
         "payment_days": order.payment_days,
         "note": order.note or "",
         "selected_client_id": str(order.client_id),
+        "order_numbering_mode": (
+            "individual"
+            if order.individual_document_number is not None
+            else "global"
+        ),
+        "individual_document_number": (
+            order.individual_document_number
+            if order.individual_document_number is not None
+            else order.client.next_document_number
+        ),
         "client_update_mode": "",
         "client": {
             field: clean(client.get(field))
@@ -742,6 +782,7 @@ def orders_history(
         )
 
         searchable = (
+            str(order.display_document_number or ""),
             str(order.document_number or ""),
             client.get("full_name") or "",
             client.get("short_name") or "",
@@ -806,10 +847,10 @@ def edit_order_page(
                 order.client_snapshot_json or "{}"
             ),
             "saved_client_id": str(order.client_id),
-            "document_number": order.document_number,
+            "document_number": order.display_document_number,
             "page_title": (
                 f"Редактирование заказа № "
-                f"{order.document_number}"
+                f"{order.display_document_number}"
             ),
             "page_description": (
                 "После сохранения документы будут "
@@ -923,6 +964,47 @@ async def update_order(
             ensure_ascii=False,
         )
 
+        numbering_mode = clean(form.get("order_numbering_mode"))
+
+        if numbering_mode:
+            if numbering_mode not in {"global", "individual"}:
+                raise ValueError("Неверный режим нумерации.")
+
+            if numbering_mode == "individual":
+                raw_number = clean(form.get("individual_document_number"))
+
+                if (
+                    not raw_number.isascii()
+                    or not raw_number.isdecimal()
+                    or len(raw_number) > 12
+                    or int(raw_number) < 1
+                ):
+                    raise ValueError("Укажите индивидуальный номер документа.")
+
+                number = int(raw_number)
+
+                duplicate = db.scalar(
+                    select(Order.id).where(
+                        Order.client_id == client.id,
+                        Order.individual_document_number == number,
+                        Order.id != order.id,
+                    )
+                )
+
+                if duplicate is not None:
+                    raise ValueError(
+                        f"Индивидуальный номер {number} уже используется."
+                    )
+
+                order.individual_document_number = number
+                client.numbering_mode = "individual"
+
+                if client.next_document_number <= number:
+                    client.next_document_number = number + 1
+
+            else:
+                order.individual_document_number = None
+
         # Номер и снимок исполнителя намеренно сохраняем.
         # Редактирование заказа не должно внезапно менять
         # исполнителя на текущие настройки.
@@ -971,10 +1053,10 @@ async def update_order(
                     order.client_snapshot_json or "{}"
                 ),
                 "saved_client_id": str(order.client_id),
-                "document_number": order.document_number,
+                "document_number": order.display_document_number,
                 "page_title": (
                     f"Редактирование заказа № "
-                    f"{order.document_number}"
+                    f"{order.display_document_number}"
                 ),
                 "page_description": (
                     "Выбери способ сохранения реквизитов."

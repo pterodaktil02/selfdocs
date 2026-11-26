@@ -322,7 +322,7 @@ def document_filename(
         f"{type_names[document_type]}-"
         f"{filename_slug(client_name, 'zakazchik')}-"
         f"{filename_slug(contractor_name, 'ispolnitel')}-"
-        f"{order.document_number}-"
+        f"{order.display_document_number}-"
         f"{date_text}-"
         f"{signature_suffix}.pdf"
     )

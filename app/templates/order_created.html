@@ -1,12 +1,12 @@
 {% extends "base.html" %}
 
-{% block title %}Заказ № {{ order.document_number }} - SelfDocs{% endblock %}
+{% block title %}Заказ № {{ order.display_document_number }} - SelfDocs{% endblock %}
 
 {% block content %}
 <div class="page-header">
     <div>
         <h1>
-            Заказ № {{ order.document_number }}
+            Заказ № {{ order.display_document_number }}
             от {{ order.document_date.strftime("%d.%m.%Y") }}
         </h1>
 
@@ -155,7 +155,7 @@
         method="post"
         action="/orders/{{ order.id }}/delete"
         onsubmit="return window.confirm(
-            'Удалить заказ № {{ order.document_number }}? Отменить это действие будет нельзя.'
+            'Удалить заказ № {{ order.display_document_number }}? Отменить это действие будет нельзя.'
         );"
     >
     <input type="hidden" name="_csrf" value="{{ csrf_token(request) }}">
